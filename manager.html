@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flatpay Manager — Dashboard TM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#08080f;--bg2:#0e0e1b;--card:#121220;--card2:#181828;
+  --border:#1e1e35;--border2:#282845;
+  --text:#eeeeff;--text2:#8888bb;--text3:#4a4a70;
+  --acc:#6c6ef5;--acc2:#4e50d4;--acc-bg:rgba(108,110,245,.1);--acc-br:rgba(108,110,245,.25);
+  --grn:#2ecc8a;--grn-bg:rgba(46,204,138,.1);--grn-br:rgba(46,204,138,.2);
+  --red:#ff4757;--red-bg:rgba(255,71,87,.1);--red-br:rgba(255,71,87,.2);
+  --amb:#ffa502;--amb-bg:rgba(255,165,2,.1);--amb-br:rgba(255,165,2,.2);
+  --teal:#00d2d3;--pink:#ff6b9d;
+  --r:10px;--rl:14px;--rxl:18px;
+}
+*{-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+
+/* AUTH */
+#auth{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-wrap{width:100%;max-width:400px}
+.auth-logo{font-size:26px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-bottom:6px}
+.auth-logo em{color:var(--acc);font-style:normal}
+.auth-role{display:inline-block;padding:3px 10px;border-radius:6px;background:var(--acc-bg);color:var(--acc);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:28px}
+.auth-card{background:var(--card);border:1px solid var(--border2);border-radius:var(--rxl);padding:28px}
+.auth-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.auth-sub{font-size:12.5px;color:var(--text3);margin-bottom:22px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+label{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3)}
+input,select,textarea{background:var(--card2);border:1px solid var(--border2);border-radius:var(--r);padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);outline:none;width:100%;transition:border-color .15s;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--acc)}
+.btn{padding:11px 18px;border-radius:var(--r);border:none;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;cursor:pointer;transition:all .15s}
+.btn.prim{background:var(--acc);color:#fff;width:100%}
+.btn.prim:hover{background:var(--acc2)}
+.btn.sec{background:var(--card2);color:var(--text2);border:1px solid var(--border2);width:100%;margin-top:8px}
+.btn.sm{padding:7px 14px;font-size:12.5px;width:auto}
+.btn.g{background:var(--grn-bg);color:var(--grn);border:1px solid var(--grn-br)}
+.btn.r{background:var(--red-bg);color:var(--red);border:1px solid var(--red-br)}
+
+/* APP */
+#app{display:none}
+#app.on{display:flex;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:50;flex-shrink:0}
+.sb-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.sb-logo-text{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.sb-logo-text em{color:var(--acc);font-style:normal}
+.sb-role{font-size:10px;color:var(--text3);margin-top:2px;font-weight:500;letter-spacing:.04em}
+.sb-user{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-avatar{width:34px;height:34px;border-radius:50%;background:var(--acc-bg);border:1.5px solid var(--acc-br);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--acc);flex-shrink:0}
+.sb-name{font-size:12.5px;font-weight:600;line-height:1.3}
+.sb-sub{font-size:11px;color:var(--text3)}
+.sb-nav{flex:1;padding:12px 10px;overflow-y:auto}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);cursor:pointer;transition:.15s;margin-bottom:2px}
+.sb-item:hover{background:rgba(255,255,255,.04)}
+.sb-item.on{background:var(--acc-bg)}
+.sb-item-icon{font-size:16px;width:20px;text-align:center}
+.sb-item-label{font-size:13px;font-weight:500;color:var(--text2)}
+.sb-item.on .sb-item-label{color:var(--acc)}
+.sb-section{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:14px 12px 6px}
+.sb-bottom{padding:16px;border-top:1px solid var(--border)}
+.sb-bottom a{display:block;font-size:12px;color:var(--text3);text-decoration:none;margin-bottom:8px}
+.sb-bottom a:hover{color:var(--text2)}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.topbar-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.mois-sel{background:var(--card2);border:1px solid var(--border2);border-radius:var(--r);padding:8px 12px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif}
+.content{padding:24px 28px;flex:1}
+.page{display:none}
+.page.on{display:block}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:18px;margin-bottom:14px}
+.card.nb{margin-bottom:0}
+.ct{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.ct-action{font-size:11px;color:var(--acc);cursor:pointer;font-weight:500;text-transform:none;letter-spacing:0}
+
+/* METRIC */
+.metric{background:var(--card2);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.ml{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.mv{font-size:26px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:-.02em;color:var(--text)}
+.mv.a{color:var(--acc)}.mv.g{color:var(--grn)}.mv.r{color:var(--red)}.mv.m{color:var(--amb)}
+.ms{font-size:11px;color:var(--text3);margin-top:3px}
+.trend{font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.trend.up{color:var(--grn)}.trend.dn{color:var(--red)}
+
+/* SALES CARD */
+.sales-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:14px}
+.sales-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:16px;transition:.15s;cursor:pointer}
+.sales-card:hover{border-color:var(--acc-br);background:var(--card2)}
+.sales-card.selected{border-color:var(--acc);background:var(--acc-bg)}
+.sc-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sc-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.sc-name{font-size:14px;font-weight:700}
+.sc-meta{font-size:11.5px;color:var(--text3);margin-top:2px}
+.sc-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sc-m{text-align:center;padding:8px 4px;background:var(--bg);border-radius:8px}
+.sc-m-v{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;margin-bottom:2px}
+.sc-m-l{font-size:10px;color:var(--text3);font-weight:500}
+.sc-prog{margin-top:10px}
+.sc-prog-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px}
+.sc-prog-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--acc),var(--teal))}
+.sc-prog-label{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text3)}
+
+/* TABLE */
+.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{background:var(--card2);padding:10px 14px;text-align:left;font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:.12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(108,110,245,.04)}
+td{padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;vertical-align:middle;color:var(--text2)}
+td:first-child{font-family:'Inter',sans-serif;font-size:13px;color:var(--text)}
+td.a{color:var(--acc)}td.g{color:var(--grn)}td.r{color:var(--red)}td.m{color:var(--amb)}td.d{color:var(--text3)}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:600}
+.badge.a{background:var(--acc-bg);color:var(--acc)}.badge.g{background:var(--grn-bg);color:var(--grn)}.badge.r{background:var(--red-bg);color:var(--red)}.badge.m{background:var(--amb-bg);color:var(--amb)}.badge.n{background:rgba(255,255,255,.06);color:var(--text3)}
+
+/* MAP */
+#map-manager{height:480px;border-radius:var(--r);border:1px solid var(--border);overflow:hidden;margin-bottom:14px}
+
+/* ANALYSE */
+.insight-card{background:var(--card2);border-left:3px solid var(--acc);border-radius:0 var(--r) var(--r) 0;padding:14px 16px;margin-bottom:10px}
+.insight-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.insight-text{font-size:12.5px;color:var(--text2);line-height:1.6}
+.insight-card.warn{border-left-color:var(--amb)}
+.insight-card.ok{border-left-color:var(--grn)}
+.insight-card.bad{border-left-color:var(--red)}
+
+/* VENTE DETAIL */
+.detail-panel{position:fixed;top:0;right:-480px;width:480px;height:100vh;background:var(--card);border-left:1px solid var(--border2);z-index:100;transition:right .25s ease;overflow-y:auto;padding:24px}
+.detail-panel.on{right:0}
+.detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;display:none}
+.detail-overlay.on{display:block}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:12px 20px;font-size:13px;font-weight:500;z-index:500;transform:translateY(80px);opacity:0;transition:all .3s;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.on{transform:none;opacity:1}
+.toast.ok{border-color:var(--grn-br);color:var(--grn)}
+.toast.err{border-color:var(--red-br);color:var(--red)}
+
+/* PROG BAR */
+.prog-bar{height:6px;background:var(--border2);border-radius:3px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--acc),var(--teal));transition:width .4s ease}
+
+/* ALERT */
+.alert{padding:10px 14px;border-radius:var(--r);font-size:12.5px;margin-bottom:12px;display:flex;gap:8px}
+.alert.w{background:var(--amb-bg);color:var(--amb);border:1px solid var(--amb-br)}
+.alert.i{background:var(--acc-bg);color:var(--acc);border:1px solid var(--acc-br)}
+.alert.ok{background:var(--grn-bg);color:var(--grn);border:1px solid var(--grn-br)}
+
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+.lg{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px}
+.lgi{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3)}
+.lgs{width:10px;height:10px;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="auth-wrap">
+    <div class="auth-logo"><em>flat</em>pay · manager</div>
+    <div class="auth-role">Territory Manager</div>
+    <div class="auth-card">
+      <div class="auth-title">Espace TM</div>
+      <div class="auth-sub">Accès réservé aux Territory Managers. Entre tes identifiants.</div>
+      <div class="field"><label>Ton nom</label><input type="text" id="a-nom" placeholder="ex: Mathis Dupont"></div>
+      <div class="field"><label>Ton code TM (partagé avec ton équipe)</label><input type="text" id="a-code" placeholder="ex: TM-SUD-01"></div>
+      <div class="field"><label>Zone géographique</label>
+        <select id="a-zone">
+          <option>Sud de la France</option><option>Nord de la France</option><option>Île-de-France</option>
+          <option>Ouest de la France</option><option>Est de la France</option><option>Toute la France</option>
+        </select>
+      </div>
+      <button class="btn prim" onclick="loginTM()">Accéder au dashboard →</button>
+      <button class="btn sec" onclick="loginDemo()">Voir la démo</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-text"><em>flat</em>pay</div>
+      <div class="sb-role">Territory Manager Dashboard</div>
+    </div>
+    <div class="sb-user">
+      <div class="sb-avatar" id="sb-av">TM</div>
+      <div>
+        <div class="sb-name" id="sb-name">—</div>
+        <div class="sb-sub" id="sb-zone">—</div>
+      </div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section">Vue d'ensemble</div>
+      <div class="sb-item on" onclick="goPage('overview',this)"><div class="sb-item-icon">📊</div><div class="sb-item-label">Dashboard</div></div>
+      <div class="sb-item" onclick="goPage('team',this)"><div class="sb-item-icon">👥</div><div class="sb-item-label">Mon équipe</div></div>
+      <div class="sb-section">Analyse</div>
+      <div class="sb-item" onclick="goPage('ventes',this)"><div class="sb-item-icon">📋</div><div class="sb-item-label">Toutes les ventes</div></div>
+      <div class="sb-item" onclick="goPage('tpv',this)"><div class="sb-item-icon">📈</div><div class="sb-item-label">Suivi TPV / C#2</div></div>
+      <div class="sb-item" onclick="goPage('map',this)"><div class="sb-item-icon">🗺️</div><div class="sb-item-label">Carte France</div></div>
+      <div class="sb-item" onclick="goPage('insights',this)"><div class="sb-item-icon">💡</div><div class="sb-item-label">Axes d'amélio.</div></div>
+      <div class="sb-section">Gestion</div>
+      <div class="sb-item" onclick="goPage('commissions',this)"><div class="sb-item-icon">💰</div><div class="sb-item-label">Commissions</div></div>
+      <div class="sb-item" onclick="goPage('ajouter',this)"><div class="sb-item-icon">➕</div><div class="sb-item-label">Saisir ventes</div></div>
+    </div>
+    <div class="sb-bottom">
+      <a href="index.html" target="_blank">→ Vue Sales</a>
+      <a onclick="logout()" style="cursor:pointer">Déconnexion</a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="tb-title">Dashboard</div>
+        <div class="topbar-sub" id="tb-sub">Chargement...</div>
+      </div>
+      <div class="topbar-right">
+        <select class="mois-sel" id="mois-filter" onchange="onMoisChange()">
+          <option>Mai 2026</option><option>Avril 2026</option><option>Mars 2026</option>
+          <option>Tous les mois</option>
+        </select>
+        <button class="btn sm" onclick="refreshData()" style="background:var(--card2);color:var(--text2);border:1px solid var(--border2)">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── OVERVIEW ── -->
+      <div class="page on" id="page-overview">
+        <div class="g4" style="margin-bottom:16px">
+          <div class="metric"><div class="ml">Installations ce mois</div><div class="mv a" id="ov-nb">—</div><div class="ms" id="ov-nb-sub">—</div></div>
+          <div class="metric"><div class="ml">Comm. brut calculé</div><div class="mv" id="ov-comm">—</div><div class="ms" id="ov-comm-sub">—</div></div>
+          <div class="metric"><div class="ml">C#2 prêtes à réclamer</div><div class="mv g" id="ov-c2">—</div><div class="ms" id="ov-c2-sub">—</div></div>
+          <div class="metric"><div class="ml">Écart FP détecté</div><div class="mv r" id="ov-ecart">—</div><div class="ms" id="ov-ecart-sub">—</div></div>
+        </div>
+
+        <div class="g2">
+          <div class="card">
+            <div class="ct">Performance équipe — <span id="ov-mois-label">Mai 2026</span>
+              <span class="ct-action" onclick="goPage('team',document.querySelector('.sb-item:nth-child(2)'))">Voir détail →</span>
+            </div>
+            <div id="ov-team-list"></div>
+          </div>
+          <div>
+            <div class="card nb">
+              <div class="ct">Commissions calculées vs FP</div>
+              <div class="lg"><span class="lgi"><span class="lgs" style="background:#6c6ef5"></span>Calculé</span><span class="lgi"><span class="lgs" style="background:#ff4757;opacity:.7"></span>Versé FP</span></div>
+              <div style="position:relative;height:200px"><canvas id="ch-comm" role="img" aria-label="Commissions calculées vs versées par mois">Commissions par mois.</canvas></div>
+            </div>
+            <div class="card" style="margin-top:14px">
+              <div class="ct">Répartition TO vs POS</div>
+              <div style="position:relative;height:160px"><canvas id="ch-type" role="img" aria-label="Répartition TO vs POS">Répartition types.</canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ct">Dernières installations — toute l'équipe</div>
+          <div class="tw"><table id="t-recent"><thead><tr><th>Sales</th><th>Client</th><th>Type</th><th>Taux</th><th>TPV</th><th>Comm. 1ère calc.</th><th>Comm. FP</th><th>Écart</th><th>Mois</th></tr></thead><tbody id="t-recent-body"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ── TEAM ── -->
+      <div class="page" id="page-team">
+        <div class="alert i">💡 Clique sur la fiche d'un Sales pour voir le détail de ses ventes et ses axes d'amélioration.</div>
+        <div class="sales-grid" id="team-grid"></div>
+        <div id="team-detail" style="display:none">
+          <div class="card">
+            <div class="ct" id="td-title">Détail ventes — Sales</div>
+            <div class="tw"><table id="t-sales-detail"><thead><tr><th>Client</th><th>Type</th><th>Taux</th><th>TPV</th><th>TPV réel</th><th>Comm. calc.</th><th>Comm. FP</th><th>C#2</th><th>Mois</th></tr></thead><tbody id="t-sd-body"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── VENTES ── -->
+      <div class="page" id="page-ventes">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <select id="vf-sales" style="width:auto" onchange="renderVentes()"><option value="">Tous les Sales</option></select>
+          <select id="vf-type" style="width:auto" onchange="renderVentes()"><option value="">TO + POS</option><option>TO</option><option>POS</option></select>
+          <input type="text" id="vf-search" placeholder="Rechercher un client..." style="width:220px" oninput="renderVentes()">
+        </div>
+        <div class="card">
+          <div class="ct">Toutes les installations <span id="ventes-count" style="color:var(--acc)"></span></div>
+          <div class="tw"><table><thead><tr><th>Sales</th><th>Client</th><th>Adresse</th><th>Type</th><th>Taux</th><th>TPV</th><th>TPV réel</th><th>Comm. calc.</th><th>Comm. FP</th><th>Écart</th><th>Mois</th></tr></thead><tbody id="t-ventes-body"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- ── TPV / C#2 ── -->
+      <div class="page" id="page-tpv">
+        <div class="g2" style="margin-bottom:16px">
+          <div class="metric"><div class="ml">C#2 prêtes</div><div class="mv g" id="tpv-ready">—</div><div class="ms">Seuil TPV 30j atteint</div></div>
+          <div class="metric"><div class="ml">Montant C#2 à réclamer</div><div class="mv m" id="tpv-amount">—</div><div class="ms">Total équipe</div></div>
+        </div>
+        <div class="card">
+          <div class="ct">Suivi TPV 30j — Seuils C#2 par client</div>
+          <div id="tpv-list"></div>
+        </div>
+      </div>
+
+      <!-- ── MAP ── -->
+      <div class="page" id="page-map">
+        <div class="g3" style="margin-bottom:16px">
+          <div class="metric"><div class="ml">Clients sur la carte</div><div class="mv a" id="map-nb">—</div></div>
+          <div class="metric"><div class="ml">Villes couvertes</div><div class="mv" id="map-villes">—</div></div>
+          <div class="metric"><div class="ml">Zone sans couverture</div><div class="mv m">Voir carte</div></div>
+        </div>
+        <div class="card nb">
+          <div class="ct">Carte France — Tous les clients de l'équipe
+            <div class="lg" style="margin:0">
+              <span class="lgi"><span class="lgs" style="background:#6c6ef5"></span>Actif</span>
+              <span class="lgi"><span class="lgs" style="background:#2ecc8a"></span>C#2 prête</span>
+              <span class="lgi"><span class="lgs" style="background:#ffa502"></span>C#2 en attente</span>
+              <span class="lgi"><span class="lgs" style="background:#ff4757"></span>Écart FP</span>
+            </div>
+          </div>
+          <div id="map-manager"></div>
+        </div>
+        <div class="card">
+          <div class="ct">Distribution géographique par Sales</div>
+          <div style="position:relative;height:200px"><canvas id="ch-geo" role="img" aria-label="Distribution géographique">Distribution.</canvas></div>
+        </div>
+      </div>
+
+      <!-- ── INSIGHTS ── -->
+      <div class="page" id="page-insights">
+        <div class="card">
+          <div class="ct">💡 Axes d'amélioration — Analyse automatique</div>
+          <div id="insights-list"></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="ct">Top performers ce mois</div>
+            <div style="position:relative;height:220px"><canvas id="ch-top" role="img" aria-label="Top performers">Top performers.</canvas></div>
+          </div>
+          <div class="card">
+            <div class="ct">Distribution des taux</div>
+            <div style="position:relative;height:220px"><canvas id="ch-taux" role="img" aria-label="Distribution taux">Distribution taux.</canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ct">Comparaison mensuelle par Sales</div>
+          <div style="position:relative;height:240px"><canvas id="ch-monthly-sales" role="img" aria-label="Comparaison mensuelle par Sales">Comparaison.</canvas></div>
+        </div>
+      </div>
+
+      <!-- ── COMMISSIONS ── -->
+      <div class="page" id="page-commissions">
+        <div class="alert w">⚠️ Cette section recalcule les commissions exactes selon la table PDF Flatpay et les compare aux montants annoncés par Flatpay sur le salary review.</div>
+        <div class="g4" style="margin-bottom:16px">
+          <div class="metric"><div class="ml">Total calculé équipe</div><div class="mv" id="cm-calc">—</div></div>
+          <div class="metric"><div class="ml">Total versé équipe</div><div class="mv m" id="cm-verse">—</div></div>
+          <div class="metric"><div class="ml">Écart total</div><div class="mv r" id="cm-ecart">—</div></div>
+          <div class="metric"><div class="ml">C#2 non versées</div><div class="mv m" id="cm-c2">—</div></div>
+        </div>
+        <div class="card">
+          <div class="ct">Détail par Sales — Commissions</div>
+          <div class="tw"><table id="t-comm"><thead><tr><th>Sales</th><th>Install.</th><th>Comm. calc. (PDF)</th><th>Comm. FP</th><th>Écart</th><th>C#2 dues</th><th>Total à réclamer</th></tr></thead><tbody id="t-comm-body"></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="ct">Écart FP vs Calculé par mois</div>
+          <div style="position:relative;height:220px"><canvas id="ch-ecart" role="img" aria-label="Écarts FP vs calculé">Écarts.</canvas></div>
+        </div>
+      </div>
+
+      <!-- ── AJOUTER ── -->
+      <div class="page" id="page-ajouter">
+        <div class="g2">
+          <div class="card">
+            <div class="ct">Saisir une vente</div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div class="field"><label>Sales</label>
+                <select id="aj-sales"><option value="">Sélectionne un Sales</option></select>
+              </div>
+              <div class="field"><label>Nom du client</label><input type="text" id="aj-client" placeholder="ex: Boulangerie du Centre"></div>
+              <div class="field"><label>Adresse complète</label><input type="text" id="aj-adresse" placeholder="ex: 15 rue Gambetta, 34000 Montpellier" oninput="ajCalc()"></div>
+              <div class="field"><label>Type</label>
+                <div style="display:flex;gap:6px">
+                  <button class="btn sm on" id="aj-to" onclick="ajType('TO')" style="flex:1;border:1px solid var(--border2);background:var(--acc-bg);color:var(--acc)">Term. only</button>
+                  <button class="btn sm" id="aj-pos" onclick="ajType('POS')" style="flex:1;border:1px solid var(--border2);background:var(--card2);color:var(--text2)">POS</button>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="field"><label>Taux (%)</label><input type="number" id="aj-tx" value="1.29" step="0.01" oninput="ajCalc()"></div>
+                <div class="field"><label>TPV annuel (€)</label><input type="number" id="aj-tpv" value="100000" oninput="ajCalc()"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="field"><label>OG ?</label>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn sm on" id="aj-oy" onclick="ajOG(1)" style="flex:1;border:1px solid var(--border2);background:var(--acc-bg);color:var(--acc)">Oui</button>
+                    <button class="btn sm" id="aj-on" onclick="ajOG(0)" style="flex:1;border:1px solid var(--border2);background:var(--card2);color:var(--text2)">Non</button>
+                  </div>
+                </div>
+                <div class="field"><label>Surcharge ?</label>
+                  <div style="display:flex;gap:6px">
+                    <button class="btn sm on" id="aj-sy" onclick="ajSur(1)" style="flex:1;border:1px solid var(--border2);background:var(--acc-bg);color:var(--acc)">Oui</button>
+                    <button class="btn sm" id="aj-sn" onclick="ajSur(0)" style="flex:1;border:1px solid var(--border2);background:var(--card2);color:var(--text2)">Non</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field" id="aj-upf-w" style="display:none"><label>Upfront POS (€)</label><input type="number" id="aj-upf" value="0" oninput="ajCalc()"></div>
+              <div class="field"><label>TPV réel 30j (€)</label><input type="number" id="aj-tpv-reel" placeholder="Optionnel"></div>
+              <div class="field"><label>Comm. 1ère annoncée par Flatpay (€)</label><input type="number" id="aj-fp" placeholder="Après salary review"></div>
+              <div class="field"><label>Mois</label>
+                <select id="aj-mois">
+                  <option>Mai 2026</option><option>Juin 2026</option><option>Juillet 2026</option>
+                  <option>Août 2026</option><option>Avril 2026</option><option>Mars 2026</option>
+                </select>
+              </div>
+              <div style="background:var(--acc-bg);border:1px solid var(--acc-br);border-radius:var(--r);padding:14px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:13px;color:var(--acc)">Commission 1ère calculée</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--acc)" id="aj-result">—</span>
+              </div>
+              <button class="btn prim" onclick="ajSave()">✓ Enregistrer la vente</button>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="ct">Saisir un salary review Flatpay</div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div class="field"><label>Sales concerné</label><select id="sr-sales"><option value="">Sélectionne un Sales</option></select></div>
+                <div class="field"><label>Mois</label><select id="sr-mois"><option>Mai 2026</option><option>Avril 2026</option><option>Mars 2026</option></select></div>
+                <div class="field"><label>Montant comm. 1ère partie annoncé (€)</label><input type="number" id="sr-comm1" placeholder="ex: 1459"></div>
+                <div class="field"><label>Montant versé bulletin (€)</label><input type="number" id="sr-bulletin" placeholder="ex: 2199"></div>
+                <div class="field"><label>Bonus OG annoncé (€)</label><input type="number" id="sr-og" placeholder="ex: 585"></div>
+                <div class="field"><label>Bonus Surcharge annoncé (€)</label><input type="number" id="sr-sur" placeholder="ex: 160"></div>
+                <div class="field"><label>Bonus Upfront annoncé (€)</label><input type="number" id="sr-upf" placeholder="ex: 413"></div>
+                <button class="btn prim" onclick="srSave()">✓ Enregistrer le salary review</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="ct">Ajouter un Sales à l'équipe</div>
+              <div style="display:flex;gap:10px">
+                <input type="text" id="new-sales-nom" placeholder="Prénom Nom" style="flex:1">
+                <button class="btn sm prim" onclick="addSales()">Ajouter</button>
+              </div>
+              <div id="sales-list-manage" style="margin-top:14px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, onSnapshot, query, where, orderBy, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const FB={apiKey:"AIzaSyDn1A3ViE1YvBV7F8DzEJ8wSmElTBCEhb4",authDomain:"flatpay-tracker-50615.firebaseapp.com",projectId:"flatpay-tracker-50615",storageBucket:"flatpay-tracker-50615.firebasestorage.app",messagingSenderId:"1087038039294",appId:"1:1087038039294:web:db633182fa34d1ba7cf1af"};
+const app=initializeApp(FB);
+const db=getFirestore(app);
+window._db=db;window._fb={collection,addDoc,getDocs,onSnapshot,query,where,orderBy,doc,setDoc,updateDoc,deleteDoc};
+
+// ── Calcul tables ──────────────────────────────────────────────────────────
+const TO_REF=[[0.64,0,0,0,0,0,80,90,115,130,5],[0.69,0,0,0,0,80,90,105,135,150,10],[0.74,0,0,0,80,90,105,120,150,170,15],[0.79,0,0,80,90,120,145,165,210,235,20],[0.84,0,90,135,180,215,245,310,350,380,25],[0.89,70,120,180,240,285,325,410,460,495,30],[0.94,80,140,210,280,335,380,480,540,585,35],[0.99,90,160,240,320,380,435,550,620,670,40],[1.04,100,180,270,360,430,490,620,700,755,45],[1.09,110,200,300,400,475,540,685,770,830,50],[1.14,120,220,330,440,525,600,760,855,925,55],[1.19,130,240,360,480,570,650,825,930,1005,60],[1.24,140,260,390,520,620,705,895,1005,1085,65],[1.29,150,280,420,560,665,760,965,1085,1170,70]];
+const POS_REF=[[0.79,0,0,0,0,0,0,0,95,100,0],[0.84,0,0,0,0,0,0,105,115,120,0],[0.89,0,0,0,0,0,90,115,130,140,0],[0.94,0,0,0,0,120,135,175,195,205,0],[0.99,65,80,115,155,185,210,265,300,320,65],[1.04,70,105,155,210,245,280,355,395,425,70],[1.09,75,120,180,240,285,320,410,460,495,75],[1.14,80,135,205,270,320,365,465,520,560,80],[1.19,85,150,225,300,355,405,515,580,620,85],[1.24,90,160,250,335,395,450,570,640,690,90],[1.29,95,165,285,380,450,515,650,730,790,95],[1.34,100,185,320,425,500,570,725,820,880,100],[1.39,105,205,355,470,560,635,810,905,975,105],[1.44,110,225,390,520,615,700,895,1005,1080,110],[1.49,115,245,430,570,675,765,985,1100,1185,115]];
+function getComm(t,v,tp){const tb=tp==='POS'?POS_REF:TO_REF;t=Math.round(t*100)/100;let ri=-1;for(let i=0;i<tb.length;i++)if(tb[i][0]<=t)ri=i;if(ri<0)return 0;const r=tb[ri],tv=v/1000,p=r[10];for(const[b,ci]of[[600,9],[500,8],[400,7],[300,6],[250,5],[200,4],[150,3],[100,2],[50,1]])if(tv>=b)return Math.round((r[ci]+(tv-b)/100*p)*100)/100;return 0;}
+function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=1500)return 200;if(u>=1250)return 150;if(u>=1000)return 100;if(u>=750)return 75;if(u>=500)return 50;if(u>0)return-100;return 0;}
+function volTO(n){if(n>=35)return 2600;if(n>=30)return 1900;if(n>=25)return 1300;if(n>=20)return 800;if(n>=15)return 400;return 0;}
+function volPOS(n){return n>=5?200+(n-5)*100:0;}
+function r2(v){return Math.round(v*100)/100;}
+function f(v){return r2(v).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function calcV(d){const c100=getComm(d.tx||0,d.tpv||0,d.type||'TO'),c1=r2(c100/2),og1=d.og?32.5:0,su1=d.sur&&d.type==='TO'?10:0,ub=d.type==='POS'?upfB(d.upf||0):0,u1=r2(ub/2);return{c100,c1,og1,su1,u1,t1:r2(c1+og1+su1+u1),c2_due:r2(c1+(d.og?32.5:0)+(d.type==='POS'?u1:0)),seuil:Math.round((d.tpv||0)/365*30)};}
+window.f=f;window.r2=r2;window.calcV=calcV;window.getComm=getComm;window.volTO=volTO;window.volPOS=volPOS;
+
+// ── Session ────────────────────────────────────────────────────────────────
+let session=JSON.parse(localStorage.getItem('fp_tm')||'null');
+let allVentes=[];let salesList=[];let salaryReviews=[];let mapManager=null;let chartsObj={};
+let currentMois='Mai 2026';
+
+function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.className=`toast ${type} on`;setTimeout(()=>t.classList.remove('on'),2500);}
+window.toast=toast;
+
+// ── AUTH ───────────────────────────────────────────────────────────────────
+window.loginTM=function(){
+  const nom=document.getElementById('a-nom').value.trim();
+  const code=document.getElementById('a-code').value.trim();
+  const zone=document.getElementById('a-zone').value;
+  if(!nom){toast('Entre ton nom','err');return;}
+  session={nom,code:code||'demo',tmId:code||'demo',zone,initials:nom.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2)};
+  localStorage.setItem('fp_tm',JSON.stringify(session));
+  startApp();
+};
+window.loginDemo=function(){
+  session={nom:'Mathis Dupont',code:'demo',tmId:'demo',zone:'Sud de la France',initials:'MD'};
+  localStorage.setItem('fp_tm',JSON.stringify(session));
+  startApp();
+};
+window.logout=function(){if(!confirm('Se déconnecter ?'))return;localStorage.removeItem('fp_tm');location.reload();};
+
+function startApp(){
+  document.getElementById('auth').style.display='none';
+  document.getElementById('app').classList.add('on');
+  document.getElementById('sb-av').textContent=session.initials;
+  document.getElementById('sb-name').textContent=session.nom;
+  document.getElementById('sb-zone').textContent=session.zone;
+  document.getElementById('tb-sub').textContent=`TM · ${session.zone}`;
+  loadData();
+  loadSalesList();
+}
+if(session)startApp();
+
+// ── LOAD DATA ──────────────────────────────────────────────────────────────
+async function loadData(){
+  try{
+    const q=window._fb.query(window._fb.collection(db,'ventes'),window._fb.where('tmId','==',session.tmId));
+    window._fb.onSnapshot(q,snap=>{
+      allVentes=snap.docs.map(d=>({id:d.id,...d.data()}));
+      renderAll();
+    });
+    const qsr=window._fb.query(window._fb.collection(db,'salary_reviews'),window._fb.where('tmId','==',session.tmId));
+    window._fb.onSnapshot(qsr,snap2=>{
+      salaryReviews=snap2.docs.map(d=>({id:d.id,...d.data()}));
+      renderAll();
+    });
+  }catch(e){
+    allVentes=getDemoVentes();renderAll();
+  }
+}
+
+async function loadSalesList(){
+  try{
+    const q=window._fb.query(window._fb.collection(db,'sales'),window._fb.where('tmId','==',session.tmId));
+    window._fb.onSnapshot(q,snap=>{
+      salesList=snap.docs.map(d=>({id:d.id,...d.data()}));
+      populateSalesSelects();renderSalesManage();
+    });
+  }catch(e){
+    salesList=[{id:'1',nom:'Salim Kanouni'},{id:'2',nom:'Alex Martin'},{id:'3',nom:'Laura Chen'},{id:'4',nom:'Mehdi Bouali'}];
+    populateSalesManage();renderSalesManage();
+  }
+}
+window.refreshData=function(){loadData();toast('Données actualisées');};
+window.onMoisChange=function(){currentMois=document.getElementById('mois-filter').value;renderAll();};
+
+function getDemoVentes(){
+  return[
+    {id:'1',salesNom:'Salim Kanouni',tmId:'demo',client:'Boulangerie Paul',type:'TO',tx:1.29,tpv:120000,og:true,sur:true,upf:0,mois:'Mai 2026',tpv_reel:8500,fp:60,lat:43.6047,lng:1.4442,adresse:'Toulouse'},
+    {id:'2',salesNom:'Salim Kanouni',tmId:'demo',client:'Restaurant La Marine',type:'POS',tx:1.49,tpv:300000,og:true,sur:false,upf:1500,mois:'Mai 2026',tpv_reel:22000,fp:117,lat:43.2965,lng:5.3698,adresse:'Marseille'},
+    {id:'3',salesNom:'Alex Martin',tmId:'demo',client:'Hotel du Midi',type:'TO',tx:0.94,tpv:480000,og:false,sur:true,upf:0,mois:'Mai 2026',tpv_reel:35000,fp:240,lat:43.6108,lng:3.8767,adresse:'Montpellier'},
+    {id:'4',salesNom:'Alex Martin',tmId:'demo',client:'Salon Élégance',type:'TO',tx:1.14,tpv:72000,og:true,sur:true,upf:0,mois:'Mai 2026',tpv_reel:5800,fp:75,lat:45.7640,lng:4.8357,adresse:'Lyon'},
+    {id:'5',salesNom:'Laura Chen',tmId:'demo',client:'Café de la Place',type:'TO',tx:0.79,tpv:60000,og:true,sur:true,upf:0,mois:'Mai 2026',tpv_reel:5200,fp:45,lat:48.8566,lng:2.3522,adresse:'Paris'},
+    {id:'6',salesNom:'Laura Chen',tmId:'demo',client:'Épicerie Fine',type:'POS',tx:1.29,tpv:200000,og:true,sur:false,upf:1000,mois:'Mai 2026',tpv_reel:16500,fp:95,lat:47.3220,lng:5.0415,adresse:'Dijon'},
+    {id:'7',salesNom:'Mehdi Bouali',tmId:'demo',client:'Librairie du Centre',type:'TO',tx:1.09,tpv:84000,og:true,sur:true,upf:0,mois:'Mai 2026',tpv_reel:7100,fp:55,lat:50.6292,lng:3.0573,adresse:'Lille'},
+    {id:'8',salesNom:'Salim Kanouni',tmId:'demo',client:'Patisserie Dupont',type:'POS',tx:1.49,tpv:180000,og:true,sur:false,upf:1500,mois:'Avril 2026',tpv_reel:14200,fp:90,lat:44.8378,lng:-0.5792,adresse:'Bordeaux'},
+    {id:'9',salesNom:'Alex Martin',tmId:'demo',client:'Garage Auto Plus',type:'TO',tx:0.84,tpv:360000,og:false,sur:true,upf:0,mois:'Avril 2026',tpv_reel:28000,fp:90,lat:43.7102,lng:7.2620,adresse:'Nice'},
+    {id:'10',salesNom:'Mehdi Bouali',tmId:'demo',client:'Boutique Mode',type:'TO',tx:1.24,tpv:96000,og:true,sur:true,upf:0,mois:'Avril 2026',tpv_reel:8000,fp:65,lat:47.2184,lng:-1.5536,adresse:'Nantes'},
+  ];
+}
+
+// ── RENDER ALL ─────────────────────────────────────────────────────────────
+function renderAll(){
+  renderOverview();renderTeam();renderVentes();renderTPV();renderCommissions();renderInsights();
+  if(mapManager)renderMapManager();
+}
+
+// ── OVERVIEW ───────────────────────────────────────────────────────────────
+function renderOverview(){
+  const vm=currentMois==='Tous les mois'?allVentes:allVentes.filter(v=>v.mois===currentMois);
+  const sales=[...new Set(vm.map(v=>v.salesNom||'—'))];
+  const nb=vm.length;
+  const t1=r2(vm.reduce((s,v)=>s+calcV(v).t1,0));
+  const nto=vm.filter(v=>v.type==='TO').length,npos=vm.filter(v=>v.type==='POS').length;
+  const vto=volTO(nb),vpos=volPOS(npos);
+  const totalBrut=r2(t1+vto+vpos);
+  const c2Ready=vm.filter(v=>{const rv=calcV(v);return(v.tpv_reel||0)>=rv.seuil&&rv.seuil>0;});
+  const c2Amount=r2(c2Ready.reduce((s,v)=>s+calcV(v).c2_due,0));
+  const ecartTotal=r2(vm.reduce((s,v)=>{const fp=v.fp||0;if(!fp)return s;return s+(calcV(v).c1-fp);},0));
+
+  document.getElementById('ov-nb').textContent=nb;
+  document.getElementById('ov-nb-sub').textContent=`${sales.length} Sales actifs`;
+  document.getElementById('ov-comm').textContent=f(totalBrut);
+  document.getElementById('ov-comm-sub').textContent=`Comm: ${f(t1)} · Vol: ${f(vto+vpos)}`;
+  document.getElementById('ov-c2').textContent=c2Ready.length;
+  document.getElementById('ov-c2-sub').textContent=f(c2Amount)+' à réclamer';
+  document.getElementById('ov-ecart').textContent=ecartTotal>0?'+'+f(ecartTotal):f(ecartTotal);
+  document.getElementById('ov-ecart-sub').textContent='vs montants Flatpay';
+  document.getElementById('ov-mois-label').textContent=currentMois;
+
+  // Team list mini
+  const byS={};
+  vm.forEach(v=>{const n=v.salesNom||'—';if(!byS[n])byS[n]={nb:0,t1:0};byS[n].nb++;byS[n].t1=r2(byS[n].t1+calcV(v).t1);});
+  const sorted=Object.entries(byS).sort((a,b)=>b[1].t1-a[1].t1);
+  const colors=['#6c6ef5','#2ecc8a','#ffa502','#ff6b9d','#00d2d3','#ff4757','#a29bfe','#fd79a8'];
+  document.getElementById('ov-team-list').innerHTML=sorted.map(([nom,s],i)=>{
+    const pct=Math.min(100,Math.round(s.nb/20*100));
+    return`<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${colors[i%colors.length]}"></div>
+          <span style="font-size:13px;font-weight:500">${nom}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:${colors[i%colors.length]}">${f(s.t1)}</span>
+          <span class="badge n" style="font-size:10px">${s.nb} install.</span>
+        </div>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${colors[i%colors.length]}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Charts
+  buildOverviewCharts(vm);
+}
+
+function buildOverviewCharts(vm){
+  const tk={color:'#8888bb',font:{size:11}},gr='rgba(255,255,255,.04)';
+  const months=[...new Set(allVentes.map(v=>v.mois||'').filter(Boolean))].sort();
+  const calcByMonth=months.map(m=>{const mv=allVentes.filter(v=>v.mois===m);const nb=mv.length;const t1=r2(mv.reduce((s,v)=>s+calcV(v).t1,0));return Math.round(t1+volTO(nb)+volPOS(mv.filter(v=>v.type==='POS').length));});
+  const fpByMonth=months.map(m=>{const sr=salaryReviews.find(s=>s.mois===m);return sr?sr.bulletin||0:0;});
+
+  destroyChart('ch-comm');
+  chartsObj['ch-comm']=new Chart(document.getElementById('ch-comm'),{type:'bar',data:{labels:months.map(m=>m.replace(' 2026','').replace(' 2027','')),datasets:[{label:'Calculé',data:calcByMonth,backgroundColor:'#6c6ef5',borderRadius:6,borderSkipped:false},{label:'Versé',data:fpByMonth,backgroundColor:'rgba(255,71,87,.65)',borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gr},ticks:tk},y:{grid:{color:gr},ticks:{...tk,callback:v=>v.toLocaleString('fr-FR')+'€'}}}}});
+
+  const nto=vm.filter(v=>v.type==='TO').length,npos=vm.filter(v=>v.type==='POS').length;
+  destroyChart('ch-type');
+  chartsObj['ch-type']=new Chart(document.getElementById('ch-type'),{type:'doughnut',data:{labels:['Term. only','POS'],datasets:[{data:[nto,npos],backgroundColor:['#6c6ef5','#2ecc8a'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#8888bb',font:{size:11}}}}}});
+}
+
+function destroyChart(id){if(chartsObj[id]){try{chartsObj[id].destroy();}catch(e){}delete chartsObj[id];}}
+
+// ── TEAM ───────────────────────────────────────────────────────────────────
+function renderTeam(){
+  const vm=currentMois==='Tous les mois'?allVentes:allVentes.filter(v=>v.mois===currentMois);
+  const salesNames=[...new Set([...vm.map(v=>v.salesNom||'—'),...salesList.map(s=>s.nom)])].filter(Boolean);
+  const colors=['#6c6ef5','#2ecc8a','#ffa502','#ff6b9d','#00d2d3','#ff4757','#a29bfe','#fd79a8','#81ecec'];
+
+  document.getElementById('team-grid').innerHTML=salesNames.map((nom,i)=>{
+    const vs=vm.filter(v=>v.salesNom===nom);
+    const nb=vs.length,nto=vs.filter(v=>v.type==='TO').length,npos=vs.filter(v=>v.type==='POS').length;
+    const t1=r2(vs.reduce((s,v)=>s+calcV(v).t1,0));
+    const vto=volTO(nb),vpos=volPOS(npos);
+    const total=r2(t1+vto+vpos);
+    const c2=vs.filter(v=>{const rv=calcV(v);return(v.tpv_reel||0)>=rv.seuil&&rv.seuil>0;}).length;
+    const pct=Math.min(100,Math.round(nb/20*100));
+    const initials=nom.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
+    const color=colors[i%colors.length];
+    return`<div class="sales-card" onclick="showSalesDetail('${nom}')">
+      <div class="sc-header">
+        <div class="sc-avatar" style="background:${color}22;border:1.5px solid ${color}44;color:${color}">${initials}</div>
+        <div><div class="sc-name">${nom}</div><div class="sc-meta">${nb} install. · ${currentMois}</div></div>
+        ${c2>0?`<span class="badge g" style="margin-left:auto">${c2} C#2</span>`:''}
+      </div>
+      <div class="sc-metrics">
+        <div class="sc-m"><div class="sc-m-v" style="color:${color}">${f(total)}</div><div class="sc-m-l">Brut calculé</div></div>
+        <div class="sc-m"><div class="sc-m-v">${nb}</div><div class="sc-m-l">Install.</div></div>
+        <div class="sc-m"><div class="sc-m-v" style="color:#ffa502">${f(vto+vpos)}</div><div class="sc-m-l">Bonus vol.</div></div>
+      </div>
+      <div class="sc-prog">
+        <div class="sc-prog-label"><span>${nb}/20 install.</span><span>${pct}%</span></div>
+        <div class="sc-prog-bar"><div class="sc-prog-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.showSalesDetail=function(nom){
+  const vm=currentMois==='Tous les mois'?allVentes:allVentes.filter(v=>v.mois===currentMois);
+  const vs=vm.filter(v=>v.salesNom===nom);
+  document.getElementById('td-title').textContent=`Détail ventes — ${nom}`;
+  document.getElementById('t-sd-body').innerHTML=vs.map(v=>{
+    const rv=calcV(v);const ec=v.fp?r2(rv.c1-v.fp):null;const reel=v.tpv_reel||0;const pct=rv.seuil>0?Math.min(100,Math.round(reel/rv.seuil*100)):0;
+    return`<tr><td>${v.client||'—'}</td><td><span class="badge ${v.type==='POS'?'a':'n'}">${v.type||'TO'}</span></td><td class="d">${(v.tx||0).toFixed(2)}%</td><td>${((v.tpv||0)/1000).toFixed(0)}k€</td><td>${reel>0?`${(reel/1000).toFixed(1)}k€ (${pct}%)`:'-'}</td><td class="a">${f(rv.c1)}</td><td class="d">${v.fp?f(v.fp):'-'}</td><td class="${pct>=100?'g':'m'}">${pct>=100?'✅ Prête':pct>0?pct+'%':'-'}</td><td class="d">${v.mois||'—'}</td></tr>`;
+  }).join('');
+  document.getElementById('team-detail').style.display='block';
+  document.getElementById('team-detail').scrollIntoView({behavior:'smooth'});
+};
+
+// ── VENTES TABLE ───────────────────────────────────────────────────────────
+function renderVentes(){
+  const sf=document.getElementById('vf-sales')?.value||'';
+  const tf=document.getElementById('vf-type')?.value||'';
+  const sr=document.getElementById('vf-search')?.value?.toLowerCase()||'';
+  const vm=currentMois==='Tous les mois'?allVentes:allVentes.filter(v=>v.mois===currentMois);
+  const filt=vm.filter(v=>(!sf||v.salesNom===sf)&&(!tf||v.type===tf)&&(!sr||((v.client||'').toLowerCase().includes(sr))));
+  document.getElementById('ventes-count').textContent=`(${filt.length})`;
+  const sel=document.getElementById('vf-sales');
+  if(sel&&!sel.querySelector('option[value="all-loaded"]')){
+    const names=[...new Set(allVentes.map(v=>v.salesNom||'').filter(Boolean))];
+    sel.innerHTML='<option value="">Tous les Sales</option>'+names.map(n=>`<option${n===sf?' selected':''}>${n}</option>`).join('');
+    sel.innerHTML+='<option value="all-loaded" style="display:none"></option>';
+  }
+  document.getElementById('t-ventes-body').innerHTML=filt.map(v=>{
+    const rv=calcV(v);const ec=v.fp?r2(rv.c1-v.fp):null;
+    return`<tr><td>${v.salesNom||'—'}</td><td>${v.client||'—'}</td><td class="d" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.adresse||'-'}</td><td><span class="badge ${v.type==='POS'?'a':'n'}">${v.type||'TO'}</span></td><td class="d">${(v.tx||0).toFixed(2)}%</td><td>${((v.tpv||0)/1000).toFixed(0)}k€</td><td class="d">${v.tpv_reel?(v.tpv_reel/1000).toFixed(1)+'k€':'-'}</td><td class="a">${f(rv.c1)}</td><td class="d">${v.fp?f(v.fp):'-'}</td><td class="${ec===null?'d':ec>1?'r':ec<-1?'g':'d'}">${ec!==null?(ec>0?'+':'')+f(ec):'-'}</td><td class="d">${v.mois||'-'}</td></tr>`;
+  }).join('');
+}
+window.renderVentes=renderVentes;
+
+// ── TPV ────────────────────────────────────────────────────────────────────
+function renderTPV(){
+  const withTPV=allVentes.filter(v=>(v.tpv_reel||0)>0).sort((a,b)=>{
+    const pa=Math.min(100,(a.tpv_reel||0)/calcV(a).seuil*100),pb=Math.min(100,(b.tpv_reel||0)/calcV(b).seuil*100);return pb-pa;
+  });
+  const ready=withTPV.filter(v=>{const rv=calcV(v);return(v.tpv_reel||0)>=rv.seuil&&rv.seuil>0;});
+  const readyAmount=r2(ready.reduce((s,v)=>s+calcV(v).c2_due,0));
+  document.getElementById('tpv-ready').textContent=ready.length;
+  document.getElementById('tpv-amount').textContent=f(readyAmount);
+  const el=document.getElementById('tpv-list');
+  if(!withTPV.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">Aucun TPV réel renseigné. Saisir les ventes avec le TPV réel 30j pour activer ce suivi.</div>';return;}
+  el.innerHTML=withTPV.map(v=>{
+    const rv=calcV(v);const reel=v.tpv_reel||0;const pct=rv.seuil>0?Math.min(100,Math.round(reel/rv.seuil*100)):0;
+    const color=pct>=100?'var(--grn)':pct>=70?'var(--acc)':'var(--amb)';
+    return`<div style="margin-bottom:16px;padding:14px;background:var(--card2);border-radius:var(--r);border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <div style="font-size:13.5px;font-weight:600">${v.client||'—'} <span style="font-size:11px;color:var(--text3);font-weight:400">· ${v.salesNom||'—'}</span></div>
+          <div style="font-size:11.5px;color:var(--text3);margin-top:2px">${v.type||'TO'} · ${(v.tx||0).toFixed(2)}% · ${((v.tpv||0)/1000).toFixed(0)}k€ TPV annuel</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:${color}">${pct}%</div>
+          <div style="font-size:11px;color:var(--text3)">C#2: ${f(rv.c2_due)}</div>
+        </div>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:6px">
+        <span>TPV réel : ${(reel/1000).toFixed(1)}k€</span>
+        <span>Seuil : ${(rv.seuil/1000).toFixed(1)}k€/mois</span>
+        <span${pct>=100?' style="color:var(--grn);font-weight:600"':''}>>${pct>=100?'✅ Seuil atteint !':'En cours'}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MAP ────────────────────────────────────────────────────────────────────
+window.goPage=function(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('on'));
+  document.getElementById('page-'+id).classList.add('on');
+  if(el)el.classList.add('on');
+  const titles={overview:'Dashboard',team:'Mon équipe',ventes:'Toutes les ventes',tpv:'Suivi TPV & C#2',map:'Carte France',insights:'Axes d\'amélioration',commissions:'Commissions',ajouter:'Saisir des données'};
+  document.getElementById('tb-title').textContent=titles[id]||id;
+  if(id==='map'&&!mapManager){
+    setTimeout(()=>{
+      mapManager=L.map('map-manager').setView([46.6,2.3],5);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'©OSM ©Carto',maxZoom:19}).addTo(mapManager);
+      renderMapManager();buildMapChart();
+    },150);
+  }
+  if(id==='insights')buildInsightCharts();
+};
+
+function renderMapManager(){
+  if(!mapManager)return;
+  mapManager.eachLayer(l=>{if(l instanceof L.CircleMarker||l instanceof L.Marker)l.remove();});
+  const withCoords=allVentes.filter(v=>v.lat&&v.lng);
+  const nb=withCoords.length;
+  const cities=new Set(withCoords.map(v=>(v.adresse||'').split(',').pop().trim()).filter(Boolean));
+  document.getElementById('map-nb').textContent=nb;
+  document.getElementById('map-villes').textContent=cities.size;
+
+  withCoords.forEach(v=>{
+    const rv=calcV(v);const reel=v.tpv_reel||0;
+    const ready=reel>=rv.seuil&&rv.seuil>0;
+    const hasEcart=(v.fp||0)>0&&r2(rv.c1-(v.fp||0))>5;
+    const color=hasEcart?'#ff4757':ready?'#2ecc8a':reel>0?'#ffa502':'#6c6ef5';
+    L.circleMarker([v.lat,v.lng],{radius:9,fillColor:color,color:'rgba(255,255,255,.25)',weight:1.5,fillOpacity:.9})
+      .addTo(mapManager)
+      .bindPopup(`<div style="font-family:Inter,sans-serif;min-width:180px;padding:4px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">${v.client||'—'}</div>
+        <div style="font-size:11.5px;color:#888;margin-bottom:6px">${v.salesNom||'—'} · ${v.adresse||''}</div>
+        <div style="display:flex;justify-content:space-between;font-size:12px">
+          <span style="color:#6c6ef5">${f(rv.t1)}</span>
+          <span style="color:${color}">${ready?'✅ C#2 prête':reel>0?'⏳ C#2 en cours':'Actif'}</span>
+        </div>
+        ${hasEcart?`<div style="color:#ff4757;font-size:11px;margin-top:4px">⚠️ Écart FP: +${f(r2(rv.c1-(v.fp||0)))}</div>`:''}
+      </div>`);
+  });
+}
+
+function buildMapChart(){
+  const tk={color:'#8888bb',font:{size:11}};
+  const salesNames=[...new Set(allVentes.map(v=>v.salesNom||'').filter(Boolean))];
+  const counts=salesNames.map(n=>allVentes.filter(v=>v.salesNom===n&&v.lat&&v.lng).length);
+  const colors=['#6c6ef5','#2ecc8a','#ffa502','#ff6b9d','#00d2d3'];
+  destroyChart('ch-geo');
+  chartsObj['ch-geo']=new Chart(document.getElementById('ch-geo'),{type:'bar',data:{labels:salesNames,datasets:[{data:counts,backgroundColor:colors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:tk},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{...tk,stepSize:1}}}}});
+}
+
+// ── INSIGHTS ───────────────────────────────────────────────────────────────
+function renderInsights(){
+  const vm=currentMois==='Tous les mois'?allVentes:allVentes.filter(v=>v.mois===currentMois);
+  const insights=[];
+  const salesNames=[...new Set(vm.map(v=>v.salesNom||'').filter(Boolean))];
+
+  salesNames.forEach(nom=>{
+    const vs=vm.filter(v=>v.salesNom===nom);
+    const nb=vs.length;
+    const npos=vs.filter(v=>v.type==='POS').length;
+    const nto=vs.filter(v=>v.type==='TO').length;
+    const avgTx=vs.length?r2(vs.reduce((s,v)=>s+(v.tx||0),0)/vs.length):0;
+    const c1=r2(vs.reduce((s,v)=>s+calcV(v).c1,0));
+    const ecarts=vs.filter(v=>v.fp&&r2(calcV(v).c1-v.fp)>5);
+
+    if(nb<15)insights.push({type:'warn',sales:nom,msg:`${nom} est à ${nb} installations ce mois — objectif 15 pour le bonus rapide (400–900€). Il reste ${15-nb} install. à faire.`});
+    if(npos<5)insights.push({type:'warn',sales:nom,msg:`${nom} a ${npos} POS ce mois. À 5 POS le bonus volume POS s'active (200€+). Il manque ${Math.max(0,5-npos)} POS.`});
+    if(avgTx<0.9&&nb>0)insights.push({type:'warn',sales:nom,msg:`${nom} — taux moyen de ${avgTx.toFixed(2)}%. Pousser les offres à taux plus élevés (≥1.29%) peut augmenter la comm. base de 30% à 50%.`});
+    if(ecarts.length>0)insights.push({type:'bad',sales:nom,msg:`${nom} — ${ecarts.length} vente(s) avec écart entre le calcul et ce que Flatpay annonce. Vérifier les ${ecarts.map(v=>v.client).join(', ')}.`});
+    const c2Ready=vs.filter(v=>{const rv=calcV(v);return(v.tpv_reel||0)>=rv.seuil&&rv.seuil>0;});
+    if(c2Ready.length>0)insights.push({type:'ok',sales:nom,msg:`${nom} — ${c2Ready.length} C#2 prête(s) à réclamer pour un total de ${f(r2(c2Ready.reduce((s,v)=>s+calcV(v).c2_due,0)))}. À régulariser ce mois.`});
+    if(npos===0&&nb>5)insights.push({type:'warn',sales:nom,msg:`${nom} — 0 POS sur ${nb} installations. Les POS génèrent une comm. plus élevée + upfront bonus. Identifier des prospects POS dans sa zone.`});
+  });
+
+  const el=document.getElementById('insights-list');
+  if(!insights.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">Aucun insight disponible — les analyses apparaissent dès que tu as des données de ventes.</div>';return;}
+  el.innerHTML=insights.map(i=>`<div class="insight-card ${i.type}"><div class="insight-title">${i.type==='ok'?'✅':i.type==='bad'?'🔴':'⚠️'} ${i.sales}</div><div class="insight-text">${i.msg}</div></div>`).join('');
+}
+
+function buildInsightCharts(){
+  const vm=currentMois==='Tous les mois'?allVentes:allVentes.filter(v=>v.mois===currentMois);
+  const salesNames=[...new Set(vm.map(v=>v.salesNom||'').filter(Boolean))];
+  const colors=['#6c6ef5','#2ecc8a','#ffa502','#ff6b9d','#00d2d3','#a29bfe'];
+  const tk={color:'#8888bb',font:{size:11}};
+
+  destroyChart('ch-top');
+  chartsObj['ch-top']=new Chart(document.getElementById('ch-top'),{type:'bar',data:{labels:salesNames,datasets:[{label:'Comm. calculée',data:salesNames.map(n=>{const vs=vm.filter(v=>v.salesNom===n);const t1=r2(vs.reduce((s,v)=>s+calcV(v).t1,0));const vto=volTO(vs.length),vpos=volPOS(vs.filter(v=>v.type==='POS').length);return Math.round(t1+vto+vpos);}),backgroundColor:colors,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:tk},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{...tk,callback:v=>v.toLocaleString('fr-FR')+'€'}}}}});
+
+  const all=currentMois==='Tous les mois'?allVentes:allVentes.filter(v=>v.mois===currentMois);
+  const tr=['<0.64','0.64-0.89','0.90-1.09','1.10-1.29','≥1.30'],ct=[0,0,0,0,0];
+  for(const v of all){const tx=v.tx||0;if(tx<0.64)ct[0]++;else if(tx<0.90)ct[1]++;else if(tx<1.10)ct[2]++;else if(tx<1.30)ct[3]++;else ct[4]++;}
+  destroyChart('ch-taux');
+  chartsObj['ch-taux']=new Chart(document.getElementById('ch-taux'),{type:'bar',data:{labels:tr,datasets:[{data:ct,backgroundColor:'#6c6ef5',borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:tk},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{...tk,stepSize:1}}}}});
+
+  const months=[...new Set(allVentes.map(v=>v.mois||'').filter(Boolean))].sort();
+  destroyChart('ch-monthly-sales');
+  chartsObj['ch-monthly-sales']=new Chart(document.getElementById('ch-monthly-sales'),{type:'line',data:{labels:months.map(m=>m.replace(' 2026','').replace(' 2027','')),datasets:salesNames.map((nom,i)=>({label:nom,data:months.map(m=>{const vs=allVentes.filter(v=>v.salesNom===nom&&v.mois===m);const t1=r2(vs.reduce((s,v)=>s+calcV(v).t1,0));return Math.round(t1+volTO(vs.length)+volPOS(vs.filter(v=>v.type==='POS').length));}),borderColor:colors[i%colors.length],backgroundColor:colors[i%colors.length]+'30',tension:.3,pointRadius:4,borderWidth:2}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8888bb',font:{size:11}}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:tk},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{...tk,callback:v=>v.toLocaleString('fr-FR')+'€'}}}}});
+}
+
+// ── COMMISSIONS ────────────────────────────────────────────────────────────
+function renderCommissions(){
+  const vm=currentMois==='Tous les mois'?allVentes:allVentes.filter(v=>v.mois===currentMois);
+  const salesNames=[...new Set(vm.map(v=>v.salesNom||'').filter(Boolean))];
+  let totalCalc=0,totalVerse=0,totalEcart=0,totalC2=0;
+  const rows=salesNames.map(nom=>{
+    const vs=vm.filter(v=>v.salesNom===nom);
+    const nb=vs.length,t1=r2(vs.reduce((s,v)=>s+calcV(v).t1,0));
+    const vto=volTO(nb),vpos=volPOS(vs.filter(v=>v.type==='POS').length);
+    const calc=r2(t1+vto+vpos);
+    const fp=r2(vs.reduce((s,v)=>s+(v.fp||0),0));
+    const ec=fp>0?r2(calc-fp):null;
+    const c2=r2(vs.filter(v=>{const rv=calcV(v);return(v.tpv_reel||0)>=rv.seuil&&rv.seuil>0;}).reduce((s,v)=>s+calcV(v).c2_due,0));
+    const reclamer=r2((ec||0)+c2);
+    totalCalc+=calc;totalVerse+=fp;if(ec)totalEcart+=ec;totalC2+=c2;
+    return`<tr><td>${nom}</td><td>${nb}</td><td class="a">${f(calc)}</td><td class="d">${fp>0?f(fp):'-'}</td><td class="${ec===null?'d':ec>50?'r':'g'}">${ec!==null?(ec>0?'+':'')+f(ec):'-'}</td><td class="m">${c2>0?f(c2):'-'}</td><td class="${reclamer>50?'r':'d'}" style="font-weight:600">${reclamer>0?f(reclamer):'-'}</td></tr>`;
+  });
+  document.getElementById('t-comm-body').innerHTML=rows.join('');
+  document.getElementById('cm-calc').textContent=f(totalCalc);
+  document.getElementById('cm-verse').textContent=f(totalVerse);
+  document.getElementById('cm-ecart').textContent=totalEcart>0?'+'+f(totalEcart):f(totalEcart);
+  document.getElementById('cm-c2').textContent=f(totalC2);
+
+  const months=[...new Set(allVentes.map(v=>v.mois||'').filter(Boolean))].sort();
+  const tk={color:'#8888bb',font:{size:11}};
+  destroyChart('ch-ecart');
+  chartsObj['ch-ecart']=new Chart(document.getElementById('ch-ecart'),{type:'bar',data:{labels:months.map(m=>m.replace(' 2026','').replace(' 2027','')),datasets:[{label:'Calculé',data:months.map(m=>{const mv=allVentes.filter(v=>v.mois===m);const t1=r2(mv.reduce((s,v)=>s+calcV(v).t1,0));const nb=mv.length;return Math.round(t1+volTO(nb)+volPOS(mv.filter(v=>v.type==='POS').length));}),backgroundColor:'#6c6ef5',borderRadius:5,borderSkipped:false},{label:'Versé',data:months.map(m=>{const sr=salaryReviews.find(s=>s.mois===m);return sr?sr.bulletin||0:0;}),backgroundColor:'rgba(255,71,87,.65)',borderRadius:5,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8888bb',font:{size:11}}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:tk},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{...tk,callback:v=>v.toLocaleString('fr-FR')+'€'}}}}});
+}
+
+// ── AJOUTER ────────────────────────────────────────────────────────────────
+function populateSalesSelects(){
+  const names=[...new Set([...salesList.map(s=>s.nom),...allVentes.map(v=>v.salesNom||'').filter(Boolean)])];
+  ['aj-sales','sr-sales','vf-sales'].forEach(id=>{
+    const sel=document.getElementById(id);if(!sel)return;
+    const cur=sel.value;
+    sel.innerHTML=(id.startsWith('vf')?'<option value="">Tous les Sales</option>':'<option value="">Sélectionne un Sales</option>')+names.map(n=>`<option${n===cur?' selected':''}>${n}</option>`).join('');
+  });
+}
+function populateSalesManage(){populateSalesSelects();}
+
+function renderSalesManage(){
+  const el=document.getElementById('sales-list-manage');if(!el)return;
+  const names=[...new Set([...salesList.map(s=>s.nom),...allVentes.map(v=>v.salesNom||'').filter(Boolean)])];
+  el.innerHTML=names.map(n=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">${n}</span><span style="font-size:11px;color:var(--text3)">${allVentes.filter(v=>v.salesNom===n).length} ventes</span></div>`).join('');
+}
+
+window.addSales=async function(){
+  const nom=document.getElementById('new-sales-nom').value.trim();
+  if(!nom){toast('Entre un nom','err');return;}
+  try{
+    await window._fb.addDoc(window._fb.collection(db,'sales'),{nom,tmId:session.tmId,createdAt:new Date().toISOString()});
+    toast(`${nom} ajouté à l'équipe`);
+    document.getElementById('new-sales-nom').value='';
+  }catch(e){
+    salesList.push({id:Date.now().toString(),nom,tmId:session.tmId});
+    populateSalesSelects();renderSalesManage();
+    toast(`${nom} ajouté (démo)`);
+    document.getElementById('new-sales-nom').value='';
+  }
+};
+
+let ajtp='TO',ajog=1,ajsu=1;
+window.ajType=(t)=>{ajtp=t;document.getElementById('aj-to').style.background=t==='TO'?'var(--acc-bg)':'var(--card2)';document.getElementById('aj-to').style.color=t==='TO'?'var(--acc)':'var(--text2)';document.getElementById('aj-pos').style.background=t==='POS'?'var(--acc-bg)':'var(--card2)';document.getElementById('aj-pos').style.color=t==='POS'?'var(--acc)':'var(--text2)';document.getElementById('aj-upf-w').style.display=t==='POS'?'':'none';ajCalc();};
+window.ajOG=(v)=>{ajog=v;document.getElementById('aj-oy').style.background=v?'var(--acc-bg)':'var(--card2)';document.getElementById('aj-oy').style.color=v?'var(--acc)':'var(--text2)';document.getElementById('aj-on').style.background=!v?'var(--acc-bg)':'var(--card2)';document.getElementById('aj-on').style.color=!v?'var(--acc)':'var(--text2)';ajCalc();};
+window.ajSur=(v)=>{ajsu=v;document.getElementById('aj-sy').style.background=v?'var(--acc-bg)':'var(--card2)';document.getElementById('aj-sy').style.color=v?'var(--acc)':'var(--text2)';document.getElementById('aj-sn').style.background=!v?'var(--acc-bg)':'var(--card2)';document.getElementById('aj-sn').style.color=!v?'var(--acc)':'var(--text2)';ajCalc();};
+window.ajCalc=function(){
+  const tpv=parseFloat(document.getElementById('aj-tpv').value)||0;
+  const tx=parseFloat(document.getElementById('aj-tx').value)||0;
+  const upf=parseFloat(document.getElementById('aj-upf').value)||0;
+  const rv=calcV({type:ajtp,tx,tpv,og:ajog,sur:ajsu,upf});
+  document.getElementById('aj-result').textContent=f(rv.t1);
+};
+window.ajCalc();
+
+window.ajSave=async function(){
+  const salesNom=document.getElementById('aj-sales').value;
+  const client=document.getElementById('aj-client').value.trim();
+  const adresse=document.getElementById('aj-adresse').value.trim();
+  if(!salesNom){toast('Sélectionne un Sales','err');return;}
+  if(!client){toast('Entre le nom du client','err');return;}
+  const data={salesNom,tmId:session.tmId,client,adresse,type:ajtp,tx:parseFloat(document.getElementById('aj-tx').value)||0,tpv:parseFloat(document.getElementById('aj-tpv').value)||0,tpv_reel:parseFloat(document.getElementById('aj-tpv-reel').value)||0,og:ajog===1,sur:ajsu===1,upf:parseFloat(document.getElementById('aj-upf').value)||0,fp:parseFloat(document.getElementById('aj-fp').value)||0,mois:document.getElementById('aj-mois').value,createdAt:new Date().toISOString(),lat:null,lng:null};
+  if(adresse){try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(adresse)}&limit=1`);const j=await r.json();if(j.length){data.lat=parseFloat(j[0].lat);data.lng=parseFloat(j[0].lon);}}catch(e){}}
+  try{
+    await window._fb.addDoc(window._fb.collection(db,'ventes'),data);
+    toast('✓ Vente enregistrée');
+    document.getElementById('aj-client').value='';document.getElementById('aj-adresse').value='';
+    document.getElementById('aj-tpv-reel').value='';document.getElementById('aj-fp').value='';
+  }catch(e){
+    allVentes.unshift({id:Date.now().toString(),...data});
+    renderAll();toast('✓ Vente enregistrée (démo)');
+    document.getElementById('aj-client').value='';document.getElementById('aj-adresse').value='';
+  }
+};
+
+window.srSave=async function(){
+  const salesNom=document.getElementById('sr-sales').value;
+  const mois=document.getElementById('sr-mois').value;
+  if(!salesNom){toast('Sélectionne un Sales','err');return;}
+  const data={salesNom,tmId:session.tmId,mois,comm1:parseFloat(document.getElementById('sr-comm1').value)||0,bulletin:parseFloat(document.getElementById('sr-bulletin').value)||0,og:parseFloat(document.getElementById('sr-og').value)||0,sur:parseFloat(document.getElementById('sr-sur').value)||0,upf:parseFloat(document.getElementById('sr-upf').value)||0,createdAt:new Date().toISOString()};
+  try{
+    await window._fb.addDoc(window._fb.collection(db,'salary_reviews'),data);
+    toast('✓ Salary review enregistré');
+  }catch(e){salaryReviews.push({id:Date.now().toString(),...data});renderAll();toast('✓ Salary review enregistré (démo)');}
+};
+</script>
+</body>
+</html>
