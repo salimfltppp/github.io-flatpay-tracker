@@ -10,17 +10,41 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#08080f;--bg2:#0e0e1b;--card:#121220;--card2:#181828;
+
+/* ── THEME VARS ── */
+:root,[data-theme="dark"]{
+  --bg:#080810;--bg2:#0e0e1b;--card:#121220;--card2:#181828;
   --border:#1e1e35;--border2:#282845;
   --text:#eeeeff;--text2:#8888bb;--text3:#4a4a70;
-  --acc:#6c6ef5;--acc2:#4e50d4;--acc-bg:rgba(108,110,245,.1);--acc-br:rgba(108,110,245,.25);
-  --grn:#2ecc8a;--grn-bg:rgba(46,204,138,.1);--grn-br:rgba(46,204,138,.2);
-  --red:#ff4757;--red-bg:rgba(255,71,87,.1);--red-br:rgba(255,71,87,.2);
-  --amb:#ffa502;--amb-bg:rgba(255,165,2,.1);--amb-br:rgba(255,165,2,.2);
-  --teal:#00d2d3;--pink:#ff6b9d;
-  --r:10px;--rl:14px;--rxl:18px;
+  --acc:#5046e5;--acc2:#3d37c9;--acc-bg:rgba(80,70,229,.1);--acc-br:rgba(80,70,229,.25);
+  --grn:#22c55e;--grn-bg:rgba(34,197,94,.1);--grn-br:rgba(34,197,94,.2);
+  --red:#ef4444;--red-bg:rgba(239,68,68,.1);--red-br:rgba(239,68,68,.2);
+  --amb:#f59e0b;--amb-bg:rgba(245,158,11,.1);--amb-br:rgba(245,158,11,.2);
+  --teal:#06b6d4;--pink:#ec4899;
+  --r:8px;--rl:12px;--rxl:16px;
+  --shadow:0 1px 4px rgba(0,0,0,.5);
 }
+[data-theme="light"]{
+  --bg:#f8f8f6;--bg2:#ffffff;--card:#ffffff;--card2:#f2f2ee;
+  --border:#e4e4de;--border2:#d0d0c8;
+  --text:#1a1a18;--text2:#52524e;--text3:#a0a098;
+  --acc:#5046e5;--acc2:#3d37c9;--acc-bg:rgba(80,70,229,.07);--acc-br:rgba(80,70,229,.2);
+  --grn:#16a34a;--grn-bg:rgba(22,163,74,.07);--grn-br:rgba(22,163,74,.18);
+  --red:#dc2626;--red-bg:rgba(220,38,38,.07);--red-br:rgba(220,38,38,.18);
+  --amb:#d97706;--amb-bg:rgba(217,119,6,.07);--amb-br:rgba(217,119,6,.18);
+  --teal:#0891b2;--pink:#db2777;
+  --shadow:0 1px 3px rgba(0,0,0,.08);
+}
+.theme-btn{
+  width:34px;height:34px;border-radius:8px;background:var(--card2);
+  border:1px solid var(--border);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;font-size:15px;
+  transition:.15s;flex-shrink:0;user-select:none;
+}
+.theme-btn:hover{border-color:var(--acc)}
+.fp-logo{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.fp-logo-icon{width:28px;height:28px;background:var(--acc);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0}
+
 *{-webkit-font-smoothing:antialiased}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
 
@@ -172,6 +196,21 @@ td.a{color:var(--acc)}td.g{color:var(--grn)}td.r{color:var(--red)}td.m{color:var
 .lgi{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3)}
 .lgs{width:10px;height:10px;border-radius:2px}
 </style>
+
+<script>
+(function(){
+  var t=localStorage.getItem('fp_theme')||'dark';
+  document.documentElement.setAttribute('data-theme',t);
+})();
+function toggleTheme(){
+  var cur=document.documentElement.getAttribute('data-theme')||'dark';
+  var nxt=cur==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',nxt);
+  localStorage.setItem('fp_theme',nxt);
+  var b=document.getElementById('tbtn');
+  if(b)b.textContent=nxt==='dark'?'☀️':'🌙';
+}
+</script>
 </head>
 <body>
 <div id="toast" class="toast"></div>
@@ -179,7 +218,7 @@ td.a{color:var(--acc)}td.g{color:var(--grn)}td.r{color:var(--red)}td.m{color:var
 <!-- AUTH -->
 <div id="auth">
   <div class="auth-wrap">
-    <div class="auth-logo"><em>flat</em>pay · manager</div>
+    <div class="fp-logo" style="margin-bottom:6px"><div class="fp-logo-icon">+</div>Flatpay · Manager</div>
     <div class="auth-role">Territory Manager</div>
     <div class="auth-card">
       <div class="auth-title">Espace TM</div>
@@ -202,7 +241,7 @@ td.a{color:var(--acc)}td.g{color:var(--grn)}td.r{color:var(--red)}td.m{color:var
 <div id="app">
   <div class="sidebar">
     <div class="sb-logo">
-      <div class="sb-logo-text"><em>flat</em>pay</div>
+      <div class="fp-logo"><div class="fp-logo-icon">+</div>Flatpay</div>
       <div class="sb-role">Territory Manager Dashboard</div>
     </div>
     <div class="sb-user">
@@ -242,6 +281,7 @@ td.a{color:var(--acc)}td.g{color:var(--grn)}td.r{color:var(--red)}td.m{color:var
           <option>Mai 2026</option><option>Avril 2026</option><option>Mars 2026</option>
           <option>Tous les mois</option>
         </select>
+        <div class="theme-btn" id="tbtn" onclick="toggleTheme()">🌙</div>
         <button class="btn sm" onclick="refreshData()" style="background:var(--card2);color:var(--text2);border:1px solid var(--border2)">↻ Refresh</button>
       </div>
     </div>
@@ -487,6 +527,19 @@ function f(v){return r2(v).toLocaleString('fr-FR',{minimumFractionDigits:2,maxim
 function calcV(d){const c100=getComm(d.tx||0,d.tpv||0,d.type||'TO'),c1=r2(c100/2),og1=d.og?32.5:0,su1=d.sur&&d.type==='TO'?10:0,ub=d.type==='POS'?upfB(d.upf||0):0,u1=r2(ub/2);return{c100,c1,og1,su1,u1,t1:r2(c1+og1+su1+u1),c2_due:r2(c1+(d.og?32.5:0)+(d.type==='POS'?u1:0)),seuil:Math.round((d.tpv||0)/365*30)};}
 window.f=f;window.r2=r2;window.calcV=calcV;window.getComm=getComm;window.volTO=volTO;window.volPOS=volPOS;
 
+function getChartColors(){
+  const t=document.documentElement.getAttribute('data-theme')||'dark';
+  return{
+    text: t==='dark'?'#8888bb':'#52524e',
+    grid: t==='dark'?'rgba(255,255,255,.04)':'rgba(0,0,0,.06)',
+    acc:'#5046e5',grn:'#22c55e',red:'#ef4444',amb:'#f59e0b',
+    teal:'#06b6d4',pink:'#ec4899',
+    accL: t==='dark'?'rgba(80,70,229,.65)':'rgba(80,70,229,.5)',
+    redL: t==='dark'?'rgba(239,68,68,.65)':'rgba(239,68,68,.5)',
+  };
+}
+
+
 // ── Session ────────────────────────────────────────────────────────────────
 let session=JSON.parse(localStorage.getItem('fp_tm')||'null');
 let allVentes=[];let salesList=[];let salaryReviews=[];let mapManager=null;let chartsObj={};
@@ -628,7 +681,7 @@ function renderOverview(){
 }
 
 function buildOverviewCharts(vm){
-  const tk={color:'#8888bb',font:{size:11}},gr='rgba(255,255,255,.04)';
+  const {text:tkc,grid:gr}=getChartColors();const tk={color:tkc,font:{size:11}};
   const months=[...new Set(allVentes.map(v=>v.mois||'').filter(Boolean))].sort();
   const calcByMonth=months.map(m=>{const mv=allVentes.filter(v=>v.mois===m);const nb=mv.length;const t1=r2(mv.reduce((s,v)=>s+calcV(v).t1,0));return Math.round(t1+volTO(nb)+volPOS(mv.filter(v=>v.type==='POS').length));});
   const fpByMonth=months.map(m=>{const sr=salaryReviews.find(s=>s.mois===m);return sr?sr.bulletin||0:0;});
