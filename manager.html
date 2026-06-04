@@ -429,7 +429,7 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
         <div class="alert i mb">🎯 Définis les objectifs mensuels pour chaque Sales. Ils verront leur progression en temps réel dans leur app.</div>
         <div class="card mb">
           <div class="ct">Objectifs globaux de l'équipe — <span id="obj-mois-lbl">Mai 2026</span>
-            <button class="btn sm prim" onclick="saveAllObjectifs()">💾 Sauvegarder</button>
+            <button class="btn sm prim" onclick="saveAllObjectifs()">📤 Envoyer aux Sales</button>
           </div>
           <div id="objectifs-list"></div>
         </div>
@@ -499,6 +499,7 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
             </div>
             <div class="card">
               <div class="ct">Équipe Sales</div>
+              <div class="alert i mb" style="line-height:1.6">👥 <strong>Connecter un Sales :</strong> ajoute son nom ci-dessous, puis donne-lui le code equipe <strong id="team-code-disp">—</strong> <span onclick="copyCode()" style="cursor:pointer;text-decoration:underline;font-weight:700">copier</span>.<br>Il se connecte sur l’app Sales avec <strong>son prenom + nom exact</strong> et ce code. Ventes et objectifs se synchronisent en direct ici.</div>
               <div style="display:flex;gap:8px;margin-bottom:12px">
                 <input type="text" id="ns-n" placeholder="Prénom Nom" style="flex:1;font-size:12.5px;padding:8px 12px">
                 <button class="btn sm prim" onclick="addSales()">Ajouter</button>
@@ -559,6 +560,7 @@ function startApp(){
   document.getElementById('sb-av').textContent=session.initials;
   document.getElementById('sb-un').textContent=session.nom;
   document.getElementById('sb-us').textContent=session.zone;
+  const _tc=document.getElementById('team-code-disp');if(_tc)_tc.textContent=session.tmId;
   // Load objectifs from localStorage
   objectifs=JSON.parse(localStorage.getItem('fp_obj_'+session.tmId)||'{}');
   loadData();loadSalesList();
@@ -571,6 +573,8 @@ async function loadData(){
     window._fb.onSnapshot(q,snap=>{allVentes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));renderAll();});
     const qs=window._fb.query(window._fb.collection(db,'salary_reviews'),window._fb.where('tmId','==',session.tmId));
     window._fb.onSnapshot(qs,snap=>{salaryReviews=snap.docs.map(d=>({id:d.id,...d.data()}));renderCommissions();});
+    const qo=window._fb.query(window._fb.collection(db,'objectifs'),window._fb.where('tmId','==',session.tmId));
+    window._fb.onSnapshot(qo,snap=>{snap.docs.forEach(d=>{const x=d.data();objectifs[x.salesNom]={install:x.install,comm:x.comm,taux:x.taux};});if(document.getElementById('page-objectifs')&&document.getElementById('page-objectifs').classList.contains('on'))renderObjectifs();},()=>{});
   }catch(e){allVentes=demoData();renderAll();}
 }
 async function loadSalesList(){
@@ -813,7 +817,16 @@ function renderObjectifs(){
   buildObjChart(sNames);
 }
 window.updateObj=el=>{const n=el.dataset.sales,k=el.dataset.key;if(!objectifs[n])objectifs[n]={};objectifs[n][k]=el.type==='number'?parseFloat(el.value):el.value;};
-window.saveAllObjectifs=()=>{localStorage.setItem('fp_obj_'+session.tmId,JSON.stringify(objectifs));toast('Objectifs sauvegardés ✓');renderAll();};
+window.saveAllObjectifs=async()=>{
+  localStorage.setItem('fp_obj_'+session.tmId,JSON.stringify(objectifs));
+  try{
+    const {collection,doc,setDoc}=window._fb;
+    await Promise.all(Object.keys(objectifs).map(n=>setDoc(doc(window._db,'objectifs',session.tmId+'__'+n),{tmId:session.tmId,salesNom:n,install:parseInt(objectifs[n].install)||0,comm:parseFloat(objectifs[n].comm)||0,taux:parseFloat(objectifs[n].taux)||0,updatedBy:session.nom,updatedAt:new Date().toISOString()})));
+    toast("Objectifs envoyes a l'equipe \u2713");
+  }catch(e){toast("Objectifs sauvegardes (hors-ligne) \u2713");}
+  renderAll();
+};
+window.copyCode=()=>{try{navigator.clipboard.writeText(session.tmId);}catch(e){}toast("Code equipe copie \u2713");};
 
 function buildObjChart(sNames){
   const C=getC();const tk={color:C.text,font:{size:11}},gr=C.grid;
@@ -916,7 +929,7 @@ function popSelects(){
 }
 function renderSalesList(){const el=document.getElementById('sales-list');if(!el)return;const names=[...new Set([...salesList.map(s=>s.nom),...allVentes.map(x=>x.salesNom||'').filter(Boolean)])];el.innerHTML=names.map(n=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:.5px solid var(--b)"><span style="font-size:13px;font-weight:500">${n}</span><span style="font-size:11px;color:var(--t3)">${allVentes.filter(x=>x.salesNom===n).length} ventes</span></div>`).join('');}
 
-window.addSales=async()=>{const n=document.getElementById('ns-n').value.trim();if(!n){toast('Entre un nom','err');return;}try{await window._fb.addDoc(window._fb.collection(db,'sales'),{nom:n,tmId:session.tmId,createdAt:new Date().toISOString()});toast(n+' ajouté ✓');document.getElementById('ns-n').value='';}catch(e){salesList.push({id:Date.now().toString(),nom:n});popSelects();renderSalesList();renderObjectifs();toast(n+' ajouté ✓');document.getElementById('ns-n').value='';}};
+window.addSales=async()=>{const n=document.getElementById('ns-n').value.trim();if(!n){toast('Entre un nom','err');return;}try{await window._fb.addDoc(window._fb.collection(db,'sales'),{nom:n,tmId:session.tmId,createdAt:new Date().toISOString()});toast(n+" ajoute — il se connecte avec son nom + le code "+session.tmId);document.getElementById('ns-n').value='';}catch(e){salesList.push({id:Date.now().toString(),nom:n});popSelects();renderSalesList();renderObjectifs();toast(n+" ajoute — il se connecte avec son nom + le code "+session.tmId);document.getElementById('ns-n').value='';}};
 
 let ajtp='TPE',ajog=1,ajsu=1,ajEditId=null;
 window.ajT=(t)=>{ajtp=(t==='POS'?'POS':'TPE');document.getElementById('aj-to').classList.toggle('on',ajtp==='TPE');document.getElementById('aj-pos').classList.toggle('on',ajtp==='POS');document.getElementById('aj-upfw').style.display=ajtp==='POS'?'':'none';ajC();};

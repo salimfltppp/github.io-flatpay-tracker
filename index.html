@@ -259,6 +259,7 @@ select option{background:var(--surf)}
 .row-act button{background:var(--card2);border:1px solid var(--line);border-radius:8px;width:30px;height:30px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:.12s;line-height:1}
 .row-act button:active{transform:scale(.86)}
 .row-act button:hover{border-color:var(--ink)}
+.obj-source{font-size:10.5px;font-weight:700;color:var(--mint-deep);background:var(--mint-soft);padding:7px 11px;border-radius:9px;margin-bottom:14px;display:inline-block}
 .muted-note{color:var(--t3);font-size:12.5px;font-weight:500;line-height:1.5}
 .toast #toast-act{margin-left:11px;background:rgba(255,255,255,.22);border:none;color:inherit;font-weight:800;padding:4px 12px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:12.5px}
 .toast.ok #toast-act{background:rgba(6,61,44,.18)}
@@ -350,6 +351,7 @@ function toggleTheme(){
 
         <div class="card">
           <div class="c-title">Objectifs du mois <span class="pill" id="prog-pct">0%</span></div>
+          <div class="obj-source" id="obj-source">🎯 Objectifs fixés par ton Territory Manager</div>
           <div class="prog">
             <div class="prog-l"><span id="p1l">0 install.</span><span class="mono" id="p1r">/ 20</span></div>
             <div class="bar"><div class="fill v" id="p1f" style="width:0"></div></div>
@@ -531,6 +533,7 @@ window.getComm=getComm;window.calcV=calcV;window.f=f;window.r2=r2;
 
 <script type="module">
 let allVentes=[],mapO=null,markers=[],verseData={};
+let myObj={install:20,comm:3000,taux:1.1,fromTM:false};
 let CURRENT_MOIS='';
 let session=JSON.parse(localStorage.getItem('fp_session')||'null');
 window._charts=[];window._editId=null;
@@ -553,7 +556,18 @@ function start(){
   $('auth').style.display='none';$('app').classList.add('on');
   $('tb-name').textContent=session.nom;$('av').textContent=session.initials;
   verseData=JSON.parse(localStorage.getItem('fp_verse_'+session.tmId)||'{}');
-  loadVentes();
+  loadVentes();loadObjectifs();
+}
+function loadObjectifs(){
+  try{
+    const {collection,onSnapshot,query,where}=window._fb;
+    const q=query(collection(window._db,'objectifs'),where('tmId','==',session.tmId),where('salesNom','==',session.nom));
+    onSnapshot(q,snap=>{
+      if(snap&&!snap.empty){const d=snap.docs[0].data();myObj={install:+d.install||20,comm:+d.comm||3000,taux:+d.taux||1.1,fromTM:true};}
+      else{myObj.fromTM=false;}
+      renderHome();
+    },()=>{});
+  }catch(e){}
 }
 if(session)start();
 
@@ -621,11 +635,13 @@ function renderHome(){
   $('m-ecart').textContent=ecartGlobal>0?f(ecartGlobal):'0,00 €';
   $('dot').style.display=ecartGlobal>0||t.c2ready.length>0?'block':'none';
 
-  const p1=Math.min(100,Math.round(t.nb/20*100));
+  const oi=myObj.install||20,oc=myObj.comm||3000;
+  const p1=Math.min(100,Math.round(t.nb/oi*100));
   $('p1f').style.width=p1+'%';$('prog-pct').textContent=p1+'%';
-  $('p1l').textContent=t.nb+' install.';
-  const p2=Math.min(100,Math.round(t.total/3000*100));
-  $('p2f').style.width=p2+'%';$('p2l').textContent=f(t.total)+' comm.';
+  $('p1l').textContent=t.nb+' install.';if($('p1r'))$('p1r').textContent='/ '+oi;
+  const p2=Math.min(100,Math.round(t.total/oc*100));
+  $('p2f').style.width=p2+'%';$('p2l').textContent=f(t.total)+' comm.';if($('p2r'))$('p2r').textContent='/ '+f(oc);
+  if($('obj-source'))$('obj-source').textContent=myObj.fromTM?'🎯 Objectifs fixés par ton Territory Manager':'🎯 Objectifs par défaut — ton TM peut les personnaliser';
 
   const rc=t.v.slice(0,4),el=$('recent');
   if(!rc.length){el.innerHTML='<div class="empty"><div class="empty-ic">📋</div><h3>Aucune vente ce mois</h3><p>Appuie sur + pour ajouter ta première installation</p></div>';}
