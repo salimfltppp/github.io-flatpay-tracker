@@ -344,7 +344,7 @@ function toggleTheme(){
 
         <div class="mgrid">
           <div class="metric a"><div class="ml">Comm. 1ère</div><div class="mv a" id="m-c1">—</div></div>
-          <div class="metric m"><div class="ml">Bonus volume</div><div class="mv m" id="m-bonus">—</div></div>
+          <div class="metric m"><div class="ml">Bonus vol.+quick</div><div class="mv m" id="m-bonus">—</div></div>
           <div class="metric g"><div class="ml">C#2 débloquées</div><div class="mv g" id="m-c2">—</div></div>
           <div class="metric r"><div class="ml">Écart à réclamer</div><div class="mv r" id="m-ecart">—</div></div>
         </div>
@@ -423,11 +423,11 @@ function toggleTheme(){
         <div class="verse-input"><label>Comm. 1ère partie versée</label><input type="number" id="v-c1" placeholder="0" oninput="saveVerse()"></div>
         <div class="verse-input"><label>Bonus volume versé</label><input type="number" id="v-bonus" placeholder="0" oninput="saveVerse()"></div>
         <div class="verse-input"><label>C#2 versées</label><input type="number" id="v-c2" placeholder="0" oninput="saveVerse()"></div>
-        <div class="verse-input"><label>UPF versé</label><input type="number" id="v-upf" placeholder="0" oninput="saveVerse()"></div>
+        <div class="verse-input"><label>Bonus quick install versé</label><input type="number" id="v-upf" placeholder="0" oninput="saveVerse()"></div>
       </div>
 
       <button class="btn prim" onclick="exportDispute()" style="margin-bottom:10px">Générer le récap de contestation (PDF)</button>
-      <p style="font-size:11px;color:var(--t3);text-align:center;font-weight:500;line-height:1.5">Le PDF reprend ligne par ligne ton calcul, le montant versé et l'écart — prêt à joindre à ta demande.</p>
+      <p style="font-size:11px;color:var(--t3);text-align:center;font-weight:500;line-height:1.5">Le PDF reprend ligne par ligne ton calcul, le montant versé et l'écart — prêt à joindre à ta demande.</p><p style="font-size:11px;color:var(--t3);text-align:left;font-weight:500;line-height:1.6;margin-top:14px;padding:12px;background:var(--card);border-radius:10px">ℹ️ <strong>À garder en tête (modèle Flatpay) :</strong> le total doit dépasser ton <strong>minimum garanti</strong> pour être versé. Un écart peut aussi venir d'une <strong>déduction</strong> : client résilié &lt; 6 mois, prix contesté &lt; 3 mois puis ajusté, ou surcharge résiliée &lt; 30j. Vérifie ces cas avant de réclamer.</p>
     </div>
 
     <!-- SIM -->
@@ -504,6 +504,13 @@ function toggleTheme(){
         <option>Août 2026</option><option>Septembre 2026</option><option>Octobre 2026</option>
       </select></div>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+      <div class="field"><label>Quick install (≤ 7 j)</label><div class="seg"><button class="sb" id="f-qy" onclick="fQuick(1)">Oui</button><button class="sb on" id="f-qn" onclick="fQuick(0)">Non</button></div></div>
+      <div class="field"><label>Mois seuil C#2 atteint</label><select id="form-c2mois">
+        <option value="">Pas encore</option><option>Mars 2026</option><option>Avril 2026</option><option>Mai 2026</option><option>Juin 2026</option><option>Juillet 2026</option>
+        <option>Août 2026</option><option>Septembre 2026</option><option>Octobre 2026</option><option>Novembre 2026</option><option>Décembre 2026</option>
+      </select></div>
+    </div>
     <div class="preview"><div class="pv-l">Commission 1ère calculée</div><div class="pv-v" id="f-res">—</div></div>
     <button class="btn prim" id="save-btn" style="margin-top:14px" onclick="saveVente()">Enregistrer la vente</button>
     <button class="btn sec" onclick="closeForm()">Annuler</button>
@@ -520,14 +527,17 @@ window._db=db;window._fb={collection,addDoc,getDocs,onSnapshot,query,where,doc,s
 
 /* ════ MOTEUR DE CALCUL — barème Flatpay (inchangé) ════ */
 const TO_REF=[[0.64,0,0,0,0,0,80,90,115,130,5],[0.69,0,0,0,0,80,90,105,135,150,10],[0.74,0,0,0,80,90,105,120,150,170,15],[0.79,0,0,80,90,120,145,165,210,235,20],[0.84,0,90,135,180,215,245,310,350,380,25],[0.89,70,120,180,240,285,325,410,460,495,30],[0.94,80,140,210,280,335,380,480,540,585,35],[0.99,90,160,240,320,380,435,550,620,670,40],[1.04,100,180,270,360,430,490,620,700,755,45],[1.09,110,200,300,400,475,540,685,770,830,50],[1.14,120,220,330,440,525,600,760,855,925,55],[1.19,130,240,360,480,570,650,825,930,1005,60],[1.24,140,260,390,520,620,705,895,1005,1085,65],[1.29,150,280,420,560,665,760,965,1085,1170,70]];
-const POS_REF=[[0.79,0,0,0,0,0,0,0,95,100,0],[0.84,0,0,0,0,0,0,105,115,120,0],[0.89,0,0,0,0,0,90,115,130,140,0],[0.94,0,0,0,0,120,135,175,195,205,0],[0.99,65,80,115,155,185,210,265,300,320,65],[1.04,70,105,155,210,245,280,355,395,425,70],[1.09,75,120,180,240,285,320,410,460,495,75],[1.14,80,135,205,270,320,365,465,520,560,80],[1.19,85,150,225,300,355,405,515,580,620,85],[1.24,90,160,250,335,395,450,570,640,690,90],[1.29,95,165,285,380,450,515,650,730,790,95],[1.34,100,185,320,425,500,570,725,820,880,100],[1.39,105,205,355,470,560,635,810,905,975,105],[1.44,110,225,390,520,615,700,895,1005,1080,110],[1.49,115,245,430,570,675,765,985,1100,1185,115]];
+const POS_REF=[[1.69,140,325,505,665,815,950,1215,1445,1630,140],[1.64,130,305,490,640,775,905,1155,1360,1510,130],[1.59,125,285,475,625,745,860,1100,1275,1395,125],[1.54,120,265,460,610,715,815,1045,1190,1280,120],[0.79,0,0,0,0,0,0,0,95,100,0],[0.84,0,0,0,0,0,0,105,115,120,0],[0.89,0,0,0,0,0,90,115,130,140,0],[0.94,0,0,0,0,120,135,175,195,205,0],[0.99,65,80,115,155,185,210,265,300,320,65],[1.04,70,105,155,210,245,280,355,395,425,70],[1.09,75,120,180,240,285,320,410,460,495,75],[1.14,80,135,205,270,320,365,465,520,560,80],[1.19,85,150,225,300,355,405,515,580,620,85],[1.24,90,160,250,335,395,450,570,640,690,90],[1.29,95,165,285,380,450,515,650,730,790,95],[1.34,100,185,320,425,500,570,725,820,880,100],[1.39,105,205,355,470,560,635,810,905,975,105],[1.44,110,225,390,520,615,700,895,1005,1080,110],[1.49,115,245,430,570,675,765,985,1100,1185,115]];
 function getComm(t,v,tp){const tb=tp==='POS'?POS_REF:TO_REF;t=Math.round(t*100)/100;let ri=-1;for(let i=0;i<tb.length;i++)if(tb[i][0]<=t)ri=i;if(ri<0)return 0;const r=tb[ri],tv=v/1000,p=r[10];for(const[b,ci]of[[600,9],[500,8],[400,7],[300,6],[250,5],[200,4],[150,3],[100,2],[50,1]])if(tv>=b)return Math.round((r[ci]+(tv-b)/100*p)*100)/100;return 0;}
-function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=1500)return 200;if(u>=1250)return 150;if(u>=1000)return 100;if(u>=750)return 75;if(u>=500)return 50;if(u>0)return-100;return 0;}
+function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=2750)return 600;if(u>=2500)return 500;if(u>=2250)return 400;if(u>=2000)return 300;if(u>=1750)return 250;if(u>=1500)return 200;if(u>=1250)return 150;if(u>=1000)return 100;if(u>=750)return 75;if(u>=500)return 50;if(u>0)return-100;return 0;}
 function volTO(n){if(n>=35)return 2600;if(n>=30)return 1900;if(n>=25)return 1300;if(n>=20)return 800;if(n>=15)return 400;return 0;}
 function volPOS(n){return n>=5?200+(n-5)*100:0;}
+const MOIS_ORD=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];function nextMonth(ms){if(!ms)return '';const p=ms.split(' ');const i=MOIS_ORD.indexOf(p[0]);if(i<0)return '';let y=parseInt(p[1])||0,j=i+1;if(j>11){j=0;y++;}return MOIS_ORD[j]+' '+y;}
+function quickB(nb,nq){if(nb<15)return 0;const p=nb?nq/nb*100:0;if(p>=90)return 900;if(p>=80)return 800;if(p>=70)return 700;if(p>=60)return 600;return 0;}
+function c2MonthOf(v){return v.c2_mois?nextMonth(v.c2_mois):'';}
 function r2(v){return Math.round(v*100)/100;}
 function f(v){return r2(v).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
-function calcV(d){const c100=getComm(d.tx||0,d.tpv||0,d.type||'TO'),c1=r2(c100/2),og1=d.og?32.5:0,su1=d.sur&&d.type==='TO'?10:0,ub=d.type==='POS'?upfB(d.upf||0):0,u1=r2(ub/2);return{c100,c1,og1,su1,u1,t1:r2(c1+og1+su1+u1),c2_due:r2(c1+(d.og?32.5:0)+(d.type==='POS'?u1:0)),seuil:Math.round((d.tpv||0)/365*30)};}
+function calcV(d){const tp=d.type||'TPE';const c100=getComm(d.tx||0,d.tpv||0,tp),c1=r2(c100/2),og1=d.og?32.5:0,su1=d.sur&&tp!=='POS'?10:0,ub=tp==='POS'?upfB(d.upf||0):0,u1=r2(ub/2);return{c100,c1,og1,su1,u1,t1:r2(c1+og1+su1+u1),c2_due:r2(c1+og1+su1+u1),seuil:Math.round((d.tpv||0)/365*30)};}
 window.getComm=getComm;window.calcV=calcV;window.f=f;window.r2=r2;
 </script>
 
@@ -544,7 +554,7 @@ window.toast=toast;
 const calcV=window.calcV,f=window.f,r2=window.r2,getComm=window.getComm;
 function volTO(n){if(n>=35)return 2600;if(n>=30)return 1900;if(n>=25)return 1300;if(n>=20)return 800;if(n>=15)return 400;return 0;}
 function volPOS(n){return n>=5?200+(n-5)*100:0;}
-function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=1500)return 200;if(u>=1250)return 150;if(u>=1000)return 100;if(u>=750)return 75;if(u>=500)return 50;if(u>0)return-100;return 0;}
+function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=2750)return 600;if(u>=2500)return 500;if(u>=2250)return 400;if(u>=2000)return 300;if(u>=1750)return 250;if(u>=1500)return 200;if(u>=1250)return 150;if(u>=1000)return 100;if(u>=750)return 75;if(u>=500)return 50;if(u>0)return-100;return 0;}
 const monthList=()=>[...new Set(allVentes.map(v=>v.mois).filter(Boolean))].sort((a,b)=>{const o=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];const[ma,ya]=a.split(' '),[mb,yb]=b.split(' ');return(ya-yb)||(o.indexOf(ma)-o.indexOf(mb));});
 
 /* ── AUTH ── */
@@ -589,16 +599,18 @@ function demo(){return[
 /* ── totaux d'un mois ── */
 function totals(mois){
   const v=allVentes.filter(x=>x.mois===mois);
-  const nb=v.length, npos=v.filter(x=>x.type==='POS').length;
+  const nb=v.length, npos=v.filter(x=>x.type==='POS').length, nq=v.filter(x=>x.quick).length;
   const c1=r2(v.reduce((s,x)=>s+calcV(x).c1,0));
   const og=r2(v.reduce((s,x)=>s+calcV(x).og1,0));
   const su=r2(v.reduce((s,x)=>s+calcV(x).su1,0));
   const ub=r2(v.reduce((s,x)=>s+calcV(x).u1,0));
   const comm1=r2(c1+og+su+ub);
-  const bonus=r2(volTO(nb)+volPOS(npos));
-  const c2ready=v.filter(x=>{const rv=calcV(x);return(x.tpv_reel||0)>=rv.seuil&&rv.seuil>0;});
+  const volBonus=r2(volTO(nb)+volPOS(npos));
+  const qiBonus=quickB(nb,nq);
+  const bonus=r2(volBonus+qiBonus);
+  const c2ready=allVentes.filter(x=>c2MonthOf(x)===mois);
   const c2val=r2(c2ready.reduce((s,x)=>s+calcV(x).c2_due,0));
-  return{v,nb,npos,c1,og,su,ub,comm1,bonus,c2ready,c2val,total:r2(comm1+bonus+c2val)};
+  return{v,nb,npos,nq,c1,og,su,ub,comm1,volBonus,qiBonus,bonus,c2ready,c2val,total:r2(comm1+bonus+c2val)};
 }
 
 /* boutons d'action sur chaque vente */
@@ -620,7 +632,7 @@ function renderHome(){
   $('h-amt').textContent=f(t.total);
   $('h-sub').textContent=`Comm. ${f(t.comm1)} · Bonus ${f(t.bonus)} · C#2 ${f(t.c2val)}`;
   $('hb-inst').textContent=t.nb+' install.';
-  $('hb-c2').textContent=t.c2ready.length+' C#2 prête'+(t.c2ready.length>1?'s':'');
+  $('hb-c2').textContent=t.c2ready.length+' C#2 ce mois';
 
   const now=new Date(),day=now.getDate(),dim=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
   const fc=day>0?r2(t.total/day*dim):t.total;
@@ -647,11 +659,11 @@ function renderHome(){
   if(!rc.length){el.innerHTML='<div class="empty"><div class="empty-ic">📋</div><h3>Aucune vente ce mois</h3><p>Appuie sur + pour ajouter ta première installation</p></div>';}
   else el.innerHTML=rc.map(v=>{const rv=calcV(v);return`<div class="row"><div class="row-l"><div class="row-name">${v.client||'—'}</div><div class="row-meta"><span class="tag ${v.type==='POS'?'pos':'to'}">${v.type==='POS'?'POS':'TPE'}</span>${(v.tx||0).toFixed(2)}% · ${((v.tpv||0)/1000).toFixed(0)}k€</div></div><div class="row-r"><div class="row-amt a mono">${f(rv.t1)}</div><div class="row-st">${v.adresse||''}</div>${act(v.id)}</div></div>`;}).join('');
 
-  const pending=allVentes.filter(v=>{const rv=calcV(v);const r=v.tpv_reel||0;return r>0&&r<rv.seuil;});
+  const pending=allVentes.filter(v=>!c2MonthOf(v)&&(v.tpv_reel||0)>0);
   $('c2-pill').textContent=t.c2ready.length+pending.length;
   const cel=$('c2-list');
   if(!t.c2ready.length&&!pending.length){cel.innerHTML='<div class="muted-note">Aucune C#2 en attente.</div>';}
-  else cel.innerHTML=[...t.c2ready,...pending].map(v=>{const rv=calcV(v);const r=v.tpv_reel||0;const ready=r>=rv.seuil&&rv.seuil>0;const pct=rv.seuil>0?Math.min(100,Math.round(r/rv.seuil*100)):0;return`<div class="row" style="border-left:3px solid ${ready?'var(--grn)':'var(--amb)'}"><div class="row-l"><div class="row-name">${v.client||'—'}</div><div class="row-meta">${ready?'<span class="tag g">seuil atteint — à réclamer</span>':pct+'% du seuil · '+(r/1000).toFixed(1)+'k / '+(rv.seuil/1000).toFixed(1)+'k€'}</div></div><div class="row-r"><div class="row-amt mono" style="color:${ready?'var(--grn)':'var(--amb)'}">${f(rv.c2_due)}</div>${act(v.id)}</div></div>`;}).join('');
+  else cel.innerHTML=[...t.c2ready,...pending].map(v=>{const rv=calcV(v);const r=v.tpv_reel||0;const ready=c2MonthOf(v)!=='';const atteint=rv.seuil>0&&r>=rv.seuil;const pct=rv.seuil>0?Math.min(100,Math.round(r/rv.seuil*100)):0;const meta=ready?'<span class="tag g">C#2 versée '+c2MonthOf(v)+'</span>':(atteint?'<span class="tag m">seuil atteint — fixe le mois ✏️</span>':pct+'% du seuil · '+(r/1000).toFixed(1)+'k / '+(rv.seuil/1000).toFixed(1)+'k€');return`<div class="row" style="border-left:3px solid ${ready?'var(--grn)':atteint?'var(--amb)':'var(--line2)'}"><div class="row-l"><div class="row-name">${v.client||'—'}</div><div class="row-meta">${meta}</div></div><div class="row-r"><div class="row-amt mono" style="color:${ready?'var(--grn)':'var(--amb)'}">${f(rv.c2_due)}</div>${act(v.id)}</div></div>`;}).join('');
 }
 
 /* ── VENTES ── */
@@ -677,9 +689,10 @@ function populateMois(){
 function ecartMois(mois){
   const t=totals(mois),vd=verseData[mois]||{};
   const lines=[
-    {k:'Comm. 1ère partie',calc:t.comm1,verse:vd.c1},
-    {k:'Bonus volume',calc:t.bonus,verse:vd.bonus},
-    {k:'C#2 débloquées',calc:t.c2val,verse:vd.c2},
+    {k:'Commission 1ère partie',sub:'50% base + OG + surcharge + UPF',calc:t.comm1,verse:vd.c1},
+    {k:'Bonus volume mensuel',sub:t.nb+' install. ce mois',calc:t.volBonus,verse:vd.bonus},
+    {k:'Bonus quick install',sub:t.nb?Math.round(t.nq/t.nb*100)+'% sous 7j'+(t.nb<15?' · <15 install.':''):'—',calc:t.qiBonus,verse:vd.quick},
+    {k:'Commission 2ème partie (C#2)',sub:'versée le mois suivant le seuil',calc:t.c2val,verse:vd.c2},
   ];
   let total=0;lines.forEach(l=>{if(l.verse!=null&&l.verse!=='')total+=r2((l.calc)-(parseFloat(l.verse)||0));});
   return{lines,total:r2(total),hasVerse:Object.keys(vd).some(k=>vd[k]!==''&&vd[k]!=null),t};
@@ -687,7 +700,7 @@ function ecartMois(mois){
 window.renderRecon=()=>{
   const mois=$('rec-mois').value||CURRENT_MOIS;
   const e=ecartMois(mois),vd=verseData[mois]||{};
-  $('v-c1').value=vd.c1??'';$('v-bonus').value=vd.bonus??'';$('v-c2').value=vd.c2??'';$('v-upf').value=vd.upf??'';
+  $('v-c1').value=vd.c1??'';$('v-bonus').value=vd.bonus??'';$('v-c2').value=vd.c2??'';$('v-upf').value=vd.quick??'';
   const hero=$('rec-hero'),tot=$('rec-total'),verd=$('rec-verdict');
   if(!e.hasVerse){hero.className='recon-hero zero';tot.textContent='— €';tot.className='rh-v mono';verd.textContent='Saisis ce que Flatpay t\'a versé pour comparer';}
   else if(e.total>0.01){hero.className='recon-hero pos';tot.textContent='+'+f(e.total);tot.className='rh-v mono pos';verd.textContent='Flatpay te doit ce montant — à réclamer';}
@@ -696,12 +709,12 @@ window.renderRecon=()=>{
   $('rec-lines').innerHTML=e.lines.map(l=>{
     const hasV=l.verse!=null&&l.verse!=='';const ec=hasV?r2(l.calc-(parseFloat(l.verse)||0)):null;
     const cls=ec==null?'zero':ec>0.01?'pos':ec<-0.01?'neg':'zero';
-    return`<div class="recon-line"><div><div class="rl-label">${l.k}</div></div><div class="rl-vals"><div class="rl-col"><span class="k">Calculé</span><span class="v mono">${f(l.calc)}</span></div><div class="rl-col"><span class="k">Versé</span><span class="v mono">${hasV?f(parseFloat(l.verse)||0):'—'}</span></div><div class="rl-ecart ${cls}">${ec==null?'—':(ec>0?'+':'')+f(ec)}</div></div></div>`;
+    return`<div class="recon-line"><div><div class="rl-label">${l.k}</div>${l.sub?'<div class="rl-sub">'+l.sub+'</div>':''}</div><div class="rl-vals"><div class="rl-col"><span class="k">Calculé</span><span class="v mono">${f(l.calc)}</span></div><div class="rl-col"><span class="k">Versé</span><span class="v mono">${hasV?f(parseFloat(l.verse)||0):'—'}</span></div><div class="rl-ecart ${cls}">${ec==null?'—':(ec>0?'+':'')+f(ec)}</div></div></div>`;
   }).join('');
 };
 window.saveVerse=()=>{
   const mois=$('rec-mois').value||CURRENT_MOIS;
-  verseData[mois]={c1:$('v-c1').value,bonus:$('v-bonus').value,c2:$('v-c2').value,upf:$('v-upf').value};
+  verseData[mois]={c1:$('v-c1').value,bonus:$('v-bonus').value,c2:$('v-c2').value,quick:$('v-upf').value};
   localStorage.setItem('fp_verse_'+session.tmId,JSON.stringify(verseData));
   renderRecon();renderHome();
   try{const {collection,doc,setDoc}=window._fb;setDoc(doc(window._db,'salary_reviews',session.tmId+'_'+mois),{tmId:session.tmId,salesNom:session.nom,mois,...verseData[mois]});}catch(e){}
@@ -755,12 +768,13 @@ function renderMap(){
 }
 
 /* ── FORM (ajout + édition) ── */
-let ftp='TPE',fog=1,fsur=1;
-window.openForm=()=>{window._editId=null;$('sheet-title').textContent='Nouvelle vente';$('sheet-desc').textContent='Renseigne le contrat pour suivre ta commission.';$('save-btn').textContent='Enregistrer la vente';['f-client','f-adr','f-tpvr'].forEach(i=>$(i).value='');$('f-tx').value='';$('f-tpv').value='';$('f-upf').value='';fType('TPE');fOG(1);fSur(1);if($('form-mois'))$('form-mois').value=CURRENT_MOIS;$('sheet').classList.add('on');fCalc();};
+let ftp='TPE',fog=1,fsur=1,fq=0;
+window.openForm=()=>{window._editId=null;$('sheet-title').textContent='Nouvelle vente';$('sheet-desc').textContent='Renseigne le contrat pour suivre ta commission.';$('save-btn').textContent='Enregistrer la vente';['f-client','f-adr','f-tpvr'].forEach(i=>$(i).value='');$('f-tx').value='';$('f-tpv').value='';$('f-upf').value='';fType('TPE');fOG(1);fSur(1);fQuick(0);if($('form-mois'))$('form-mois').value=CURRENT_MOIS;if($('form-c2mois'))$('form-c2mois').value='';$('sheet').classList.add('on');fCalc();};
 window.closeForm=()=>{window._editId=null;$('sheet').classList.remove('on');};
 window.fType=t=>{ftp=t;$('f-to').classList.toggle('on',t==='TPE');$('f-pos').classList.toggle('on',t==='POS');$('f-upf-w').style.display=t==='POS'?'':'none';fCalc();};
 window.fOG=v=>{fog=v;$('f-oy').classList.toggle('on',!!v);$('f-on').classList.toggle('on',!v);fCalc();};
 window.fSur=v=>{fsur=v;$('f-sy').classList.toggle('on',!!v);$('f-sn').classList.toggle('on',!v);fCalc();};
+window.fQuick=v=>{fq=v;$('f-qy').classList.toggle('on',!!v);$('f-qn').classList.toggle('on',!v);};
 window.fCalc=()=>{const d={type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,og:fog,sur:fsur,upf:parseFloat($('f-upf').value)||0};$('f-res').textContent=f(calcV(d).t1);};
 
 window.editVente=(id)=>{
@@ -770,7 +784,8 @@ window.editVente=(id)=>{
   $('f-client').value=v.client||'';$('f-adr').value=v.adresse||'';
   $('f-tx').value=v.tx||'';$('f-tpv').value=v.tpv||'';$('f-upf').value=v.upf||'';$('f-tpvr').value=v.tpv_reel||'';
   if($('form-mois'))$('form-mois').value=v.mois||CURRENT_MOIS;
-  fType(v.type==='POS'?'POS':'TPE');fOG(v.og?1:0);fSur(v.sur?1:0);
+  fType(v.type==='POS'?'POS':'TPE');fOG(v.og?1:0);fSur(v.sur?1:0);fQuick(v.quick?1:0);
+  if($('form-c2mois'))$('form-c2mois').value=v.c2_mois||'';
   $('sheet').classList.add('on');fCalc();
 };
 
@@ -779,7 +794,7 @@ window.saveVente=async()=>{
   const adresse=$('f-adr').value.trim();
   const editing=window._editId;
   const prev=editing?allVentes.find(x=>x.id===editing):null;
-  const data={salesNom:session.nom,tmId:session.tmId,client,adresse,type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,tpv_reel:parseFloat($('f-tpvr').value)||0,og:fog===1,sur:fsur===1,upf:parseFloat($('f-upf').value)||0,mois:($('form-mois')?$('form-mois').value:CURRENT_MOIS),fp:prev?prev.fp||0:0,createdAt:prev?prev.createdAt||new Date().toISOString():new Date().toISOString(),lat:prev?prev.lat:null,lng:prev?prev.lng:null};
+  const data={salesNom:session.nom,tmId:session.tmId,client,adresse,type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,tpv_reel:parseFloat($('f-tpvr').value)||0,og:fog===1,sur:fsur===1,quick:fq===1,c2_mois:($('form-c2mois')?$('form-c2mois').value:''),upf:parseFloat($('f-upf').value)||0,mois:($('form-mois')?$('form-mois').value:CURRENT_MOIS),fp:prev?prev.fp||0:0,createdAt:prev?prev.createdAt||new Date().toISOString():new Date().toISOString(),lat:prev?prev.lat:null,lng:prev?prev.lng:null};
   if(adresse&&(!prev||prev.adresse!==adresse)){try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(adresse)}&limit=1`);const j=await r.json();if(j.length){data.lat=parseFloat(j[0].lat);data.lng=parseFloat(j[0].lon);}}catch(e){}}
   CURRENT_MOIS=data.mois||CURRENT_MOIS;
   if(editing){

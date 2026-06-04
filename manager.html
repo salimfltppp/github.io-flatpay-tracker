@@ -478,6 +478,8 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
                 <div class="field" style="margin-bottom:0"><label>TPV réel 30j (€)</label><input type="number" id="aj-reel" placeholder="Optionnel"></div>
                 <div class="field" style="margin-bottom:0"><label>Comm. FP annoncée (€)</label><input type="number" id="aj-fp" placeholder="Après salary review"></div>
                 <div class="field" style="margin-bottom:0"><label>Mois</label><select id="aj-m"><option>Mai 2026</option><option>Juin 2026</option><option>Juillet 2026</option><option>Avril 2026</option><option>Mars 2026</option></select></div>
+                <div class="field" style="margin-bottom:0"><label>Quick install (≤7j)</label><div class="seg"><button class="sb2" id="aj-qy" onclick="ajQ(1)">Oui</button><button class="sb2 on" id="aj-qn" onclick="ajQ(0)">Non</button></div></div>
+                <div class="field" style="margin-bottom:0"><label>Mois seuil C#2 atteint</label><select id="aj-c2m"><option value="">Pas encore</option><option>Mars 2026</option><option>Avril 2026</option><option>Mai 2026</option><option>Juin 2026</option><option>Juillet 2026</option><option>Août 2026</option><option>Septembre 2026</option><option>Octobre 2026</option></select></div>
                 <div style="background:var(--accl);border:.5px solid var(--accb);border-radius:var(--r);padding:14px;display:flex;justify-content:space-between;align-items:center">
                   <span style="font-size:12.5px;color:var(--acc)">Commission calculée</span>
                   <span style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--acc)" id="aj-res">—</span>
@@ -530,14 +532,17 @@ window._db=db;window._fb={collection,addDoc,onSnapshot,query,where,doc,setDoc,ge
 
 // ── Tables PDF ──────────────────────────────────────────────────────────────
 const TO_R=[[0.64,0,0,0,0,0,80,90,115,130,5],[0.69,0,0,0,0,80,90,105,135,150,10],[0.74,0,0,0,80,90,105,120,150,170,15],[0.79,0,0,80,90,120,145,165,210,235,20],[0.84,0,90,135,180,215,245,310,350,380,25],[0.89,70,120,180,240,285,325,410,460,495,30],[0.94,80,140,210,280,335,380,480,540,585,35],[0.99,90,160,240,320,380,435,550,620,670,40],[1.04,100,180,270,360,430,490,620,700,755,45],[1.09,110,200,300,400,475,540,685,770,830,50],[1.14,120,220,330,440,525,600,760,855,925,55],[1.19,130,240,360,480,570,650,825,930,1005,60],[1.24,140,260,390,520,620,705,895,1005,1085,65],[1.29,150,280,420,560,665,760,965,1085,1170,70]];
-const POS_R=[[0.79,0,0,0,0,0,0,0,95,100,0],[0.84,0,0,0,0,0,0,105,115,120,0],[0.89,0,0,0,0,0,90,115,130,140,0],[0.94,0,0,0,0,120,135,175,195,205,0],[0.99,65,80,115,155,185,210,265,300,320,65],[1.04,70,105,155,210,245,280,355,395,425,70],[1.09,75,120,180,240,285,320,410,460,495,75],[1.14,80,135,205,270,320,365,465,520,560,80],[1.19,85,150,225,300,355,405,515,580,620,85],[1.24,90,160,250,335,395,450,570,640,690,90],[1.29,95,165,285,380,450,515,650,730,790,95],[1.34,100,185,320,425,500,570,725,820,880,100],[1.39,105,205,355,470,560,635,810,905,975,105],[1.44,110,225,390,520,615,700,895,1005,1080,110],[1.49,115,245,430,570,675,765,985,1100,1185,115]];
+const POS_R=[[1.69,140,325,505,665,815,950,1215,1445,1630,140],[1.64,130,305,490,640,775,905,1155,1360,1510,130],[1.59,125,285,475,625,745,860,1100,1275,1395,125],[1.54,120,265,460,610,715,815,1045,1190,1280,120],[0.79,0,0,0,0,0,0,0,95,100,0],[0.84,0,0,0,0,0,0,105,115,120,0],[0.89,0,0,0,0,0,90,115,130,140,0],[0.94,0,0,0,0,120,135,175,195,205,0],[0.99,65,80,115,155,185,210,265,300,320,65],[1.04,70,105,155,210,245,280,355,395,425,70],[1.09,75,120,180,240,285,320,410,460,495,75],[1.14,80,135,205,270,320,365,465,520,560,80],[1.19,85,150,225,300,355,405,515,580,620,85],[1.24,90,160,250,335,395,450,570,640,690,90],[1.29,95,165,285,380,450,515,650,730,790,95],[1.34,100,185,320,425,500,570,725,820,880,100],[1.39,105,205,355,470,560,635,810,905,975,105],[1.44,110,225,390,520,615,700,895,1005,1080,110],[1.49,115,245,430,570,675,765,985,1100,1185,115]];
 function gc(t,v,tp){const tb=tp==='POS'?POS_R:TO_R;t=Math.round(t*100)/100;let ri=-1;for(let i=0;i<tb.length;i++)if(tb[i][0]<=t)ri=i;if(ri<0)return 0;const r=tb[ri],tv=v/1000,p=r[10];for(const[b,ci]of[[600,9],[500,8],[400,7],[300,6],[250,5],[200,4],[150,3],[100,2],[50,1]])if(tv>=b)return Math.round((r[ci]+(tv-b)/100*p)*100)/100;return 0;}
-function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=1500)return 200;if(u>=1250)return 150;if(u>=1000)return 100;if(u>=750)return 75;if(u>=500)return 50;if(u>0)return-100;return 0;}
+function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=2750)return 600;if(u>=2500)return 500;if(u>=2250)return 400;if(u>=2000)return 300;if(u>=1750)return 250;if(u>=1500)return 200;if(u>=1250)return 150;if(u>=1000)return 100;if(u>=750)return 75;if(u>=500)return 50;if(u>0)return-100;return 0;}
 function vTO(n){if(n>=35)return 2600;if(n>=30)return 1900;if(n>=25)return 1300;if(n>=20)return 800;if(n>=15)return 400;return 0;}
 function vPOS(n){return n>=5?200+(n-5)*100:0;}
+const MOIS_ORD=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];function nextMonth(ms){if(!ms)return '';const p=ms.split(' ');const i=MOIS_ORD.indexOf(p[0]);if(i<0)return '';let y=parseInt(p[1])||0,j=i+1;if(j>11){j=0;y++;}return MOIS_ORD[j]+' '+y;}
+function quickB(nb,nq){if(nb<15)return 0;const p=nb?nq/nb*100:0;if(p>=90)return 900;if(p>=80)return 800;if(p>=70)return 700;if(p>=60)return 600;return 0;}
 function r2(v){return Math.round(v*100)/100;}
 function f(v,s=false){const x=r2(v);if(s&&x>=1000)return Math.round(x/100)/10+'k €';return x.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
-function cV(d){const c100=gc(d.tx||0,d.tpv||0,d.type||'TO'),c1=r2(c100/2),og1=d.og?32.5:0,su1=d.sur&&d.type==='TO'?10:0,ub=d.type==='POS'?upfB(d.upf||0):0,u1=r2(ub/2);return{c100,c1,og1,su1,u1,t1:r2(c1+og1+su1+u1),c2:r2(c1+(d.og?32.5:0)+(d.type==='POS'?u1:0)),seuil:Math.round((d.tpv||0)/365*30)};}
+function cV(d){const tp=d.type||'TPE';const c100=gc(d.tx||0,d.tpv||0,tp),c1=r2(c100/2),og1=d.og?32.5:0,su1=d.sur&&tp!=='POS'?10:0,ub=tp==='POS'?upfB(d.upf||0):0,u1=r2(ub/2);return{c100,c1,og1,su1,u1,t1:r2(c1+og1+su1+u1),c2:r2(c1+og1+su1+u1),seuil:Math.round((d.tpv||0)/365*30)};}
+function c2MonthOf(v){return v.c2_mois?nextMonth(v.c2_mois):'';}
 
 // ── THEME ──────────────────────────────────────────────────────────────────
 (()=>{const t=localStorage.getItem('fp_theme')||'dark';document.documentElement.setAttribute('data-theme',t);const b=document.getElementById('theme-btn');if(b)b.textContent=t==='dark'?'☀️':'🌙';})();
@@ -606,7 +611,7 @@ function calcPrevisions(v,mois){
   const ratio=daysInMonth/Math.max(dayOfMonth,1);
   const nb=v.length,t1=r2(v.reduce((s,x)=>s+cV(x).t1,0));
   const nto=v.filter(x=>x.type==='TO').length,npos=v.filter(x=>x.type==='POS').length;
-  const total=r2(t1+vTO(nb)+vPOS(npos));
+  const total=r2(t1+vTO(nb)+vPOS(npos)+quickB(nb,v.filter(x=>x.quick).length));
   return{install:Math.round(nb*ratio),comm:Math.round(total*ratio),daysLeft:daysInMonth-dayOfMonth,ratio};
 }
 
@@ -616,7 +621,7 @@ function renderOverview(){
   const t1=r2(v.reduce((s,x)=>s+cV(x).t1,0));
   const nto=v.filter(x=>x.type==='TO').length,npos=v.filter(x=>x.type==='POS').length;
   const vto=vTO(nb),vpos=vPOS(npos),total=r2(t1+vto+vpos);
-  const c2r=v.filter(x=>{const rv=cV(x);return(x.tpv_reel||0)>=rv.seuil&&rv.seuil>0;});
+  const c2r=v.filter(x=>{return c2MonthOf(x)!=="";});
   const ec=r2(v.reduce((s,x)=>{const fp=x.fp||0;if(!fp)return s;return s+(cV(x).c1-fp);},0));
   const sNames=[...new Set(v.map(x=>x.salesNom||'').filter(Boolean))];
   // Objectif global
@@ -673,7 +678,7 @@ function renderTeam(){
     const vs=v.filter(x=>x.salesNom===n),nb=vs.length;
     const nto=vs.filter(x=>x.type==='TO').length,npos=vs.filter(x=>x.type==='POS').length;
     const t1=r2(vs.reduce((s,x)=>s+cV(x).t1,0)),vto=vTO(nb),vpos=vPOS(npos),total=r2(t1+vto+vpos);
-    const c2r=vs.filter(x=>{const rv=cV(x);return(x.tpv_reel||0)>=rv.seuil&&rv.seuil>0;}).length;
+    const c2r=vs.filter(x=>{return c2MonthOf(x)!=="";}).length;
     const obj=objectifs[n]||{install:20,comm:3000,taux:1.1};
     const pct=Math.min(100,Math.round(nb/(parseInt(obj.install)||20)*100));
     const pctC=Math.min(100,Math.round(total/(parseInt(obj.comm)||3000)*100));
@@ -724,7 +729,7 @@ function renderAlertes(){
     if(nb===0)alertes.push({type:'r',ico:'🚨',title:n,sub:`Aucune vente ce mois — pas encore démarré`});
     else if(daysSince>=7)alertes.push({type:'r',ico:'⚠️',title:n,sub:`Dernière installation il y a ${daysSince} jours. Rythme insuffisant.`});
     else if(nb<(parseInt(obj.install)||20)*0.5&&currentMois){const prev=calcPrevisions(vs,currentMois);if(prev)alertes.push({type:'m',ico:'📉',title:n,sub:`À ce rythme: ${prev.install} install. prévues sur l'objectif de ${obj.install||20}.`});}
-    const c2rdy=vs.filter(x=>{const rv=cV(x);return(x.tpv_reel||0)>=rv.seuil&&rv.seuil>0;});
+    const c2rdy=vs.filter(x=>{return c2MonthOf(x)!=="";});
     if(c2rdy.length>0)alertes.push({type:'g',ico:'💰',title:n,sub:`${c2rdy.length} C#2 prête(s) — ${f(r2(c2rdy.reduce((s,x)=>s+cV(x).c2,0)),true)} à réclamer immédiatement.`});
     const ecarts=vs.filter(x=>x.fp&&r2(cV(x).c1-x.fp)>5);
     if(ecarts.length>0)alertes.push({type:'m',ico:'🔍',title:n,sub:`${ecarts.length} écart(s) FP détecté(s) — ${f(r2(ecarts.reduce((s,x)=>s+r2(cV(x).c1-x.fp),0)),true)} à régulariser.`});
@@ -843,7 +848,7 @@ function renderInsights(){
     const avgTx=vs.length?r2(vs.reduce((s,x)=>s+(x.tx||0),0)/vs.length):0;
     const obj=objectifs[n]||{install:20,comm:3000,taux:1.1};
     const ecarts=vs.filter(x=>x.fp&&r2(cV(x).c1-x.fp)>5);
-    const c2r=vs.filter(x=>{const rv=cV(x);return(x.tpv_reel||0)>=rv.seuil&&rv.seuil>0;});
+    const c2r=vs.filter(x=>{return c2MonthOf(x)!=="";});
     const prev=calcPrevisions(vs,currentMois);
     if(prev&&prev.install<(parseInt(obj.install)||20))ins.push({t:'warn',n,m:`À ce rythme: ${prev.install} installations prévues ce mois — objectif: ${obj.install||20}. Il faut accélérer.`});
     if(nb<15)ins.push({t:'warn',n,m:`${nb} installations ce mois. Encore ${15-nb} pour le bonus rapide. ${nb>=10?'Accessible !':'Effort nécessaire.'}`});
@@ -869,7 +874,7 @@ function buildInsightCharts(){
 function renderCommissions(){
   const v=vm();const sNames=[...new Set(v.map(x=>x.salesNom||'').filter(Boolean))];
   let tc=0,tv=0,te=0,tc2=0;
-  const rows=sNames.map(n=>{const vs=v.filter(x=>x.salesNom===n),nb=vs.length,t1=r2(vs.reduce((s,x)=>s+cV(x).t1,0)),vto=vTO(nb),vpos=vPOS(vs.filter(x=>x.type==='POS').length),calc=r2(t1+vto+vpos),fp=r2(vs.reduce((s,x)=>s+(x.fp||0),0)),ec=fp>0?r2(calc-fp):null,c2=r2(vs.filter(x=>{const rv=cV(x);return(x.tpv_reel||0)>=rv.seuil&&rv.seuil>0;}).reduce((s,x)=>s+cV(x).c2,0));tc+=calc;tv+=fp;if(ec)te+=ec;tc2+=c2;const rec=r2((ec||0)+c2);return`<tr><td>${n}</td><td>${nb}</td><td class="a">${f(calc,true)}</td><td class="d">${fp>0?f(fp,true):'-'}</td><td class="${ec&&ec>50?'r':ec&&ec<-20?'g':'d'}">${ec!==null?(ec>0?'+':'')+f(ec,true):'-'}</td><td class="m">${c2>0?f(c2,true):'-'}</td><td class="${rec>50?'r':'d'}" style="font-weight:600">${rec>0?f(rec,true):'-'}</td></tr>`;});
+  const rows=sNames.map(n=>{const vs=v.filter(x=>x.salesNom===n),nb=vs.length,t1=r2(vs.reduce((s,x)=>s+cV(x).t1,0)),vto=vTO(nb),vpos=vPOS(vs.filter(x=>x.type==='POS').length),calc=r2(t1+vto+vpos+quickB(nb,vs.filter(x=>x.quick).length)),fp=r2(vs.reduce((s,x)=>s+(x.fp||0),0)),ec=fp>0?r2(calc-fp):null,c2=r2((currentMois?allVentes.filter(x=>x.salesNom===n&&c2MonthOf(x)===currentMois):allVentes.filter(x=>x.salesNom===n&&c2MonthOf(x)!=='')).reduce((s,x)=>s+cV(x).c2,0));tc+=calc;tv+=fp;if(ec)te+=ec;tc2+=c2;const rec=r2((ec||0)+c2);return`<tr><td>${n}</td><td>${nb}</td><td class="a">${f(calc,true)}</td><td class="d">${fp>0?f(fp,true):'-'}</td><td class="${ec&&ec>50?'r':ec&&ec<-20?'g':'d'}">${ec!==null?(ec>0?'+':'')+f(ec,true):'-'}</td><td class="m">${c2>0?f(c2,true):'-'}</td><td class="${rec>50?'r':'d'}" style="font-weight:600">${rec>0?f(rec,true):'-'}</td></tr>`;});
   const tbody=document.getElementById('tc-body');if(!tbody)return;
   tbody.innerHTML=rows.join('');
   document.getElementById('cm-c').textContent=f(tc,true);
@@ -898,7 +903,7 @@ window.exportPDF=()=>{
     const nb=v.length,t1=r2(v.reduce((s,x)=>s+cV(x).t1,0));
     const nto=v.filter(x=>x.type==='TO').length,npos=v.filter(x=>x.type==='POS').length;
     const vto=vTO(nb),vpos=vPOS(npos),total=r2(t1+vto+vpos);
-    const c2r=v.filter(x=>{const rv=cV(x);return(x.tpv_reel||0)>=rv.seuil&&rv.seuil>0;});
+    const c2r=v.filter(x=>{return c2MonthOf(x)!=="";});
     const kpis=[['Installations',nb],['Brut calculé',f(total)],['C#2 prêtes',c2r.length],['TO / POS',`${nto} / ${npos}`]];
     doc.setFontSize(9);doc.setFont('helvetica','normal');
     kpis.forEach((kp,i)=>{const x=14+i*48;doc.setFillColor(248,248,246);doc.rect(x,y,44,16,'F');doc.setTextColor(100,100,100);doc.text(kp[0],x+3,y+5);doc.setTextColor(0,0,0);doc.setFontSize(11);doc.setFont('helvetica','bold');doc.text(String(kp[1]),x+3,y+12);doc.setFontSize(9);doc.setFont('helvetica','normal');});
@@ -931,17 +936,18 @@ function renderSalesList(){const el=document.getElementById('sales-list');if(!el
 
 window.addSales=async()=>{const n=document.getElementById('ns-n').value.trim();if(!n){toast('Entre un nom','err');return;}try{await window._fb.addDoc(window._fb.collection(db,'sales'),{nom:n,tmId:session.tmId,createdAt:new Date().toISOString()});toast(n+" ajoute — il se connecte avec son nom + le code "+session.tmId);document.getElementById('ns-n').value='';}catch(e){salesList.push({id:Date.now().toString(),nom:n});popSelects();renderSalesList();renderObjectifs();toast(n+" ajoute — il se connecte avec son nom + le code "+session.tmId);document.getElementById('ns-n').value='';}};
 
-let ajtp='TPE',ajog=1,ajsu=1,ajEditId=null;
+let ajtp='TPE',ajog=1,ajsu=1,ajq=0,ajEditId=null;
 window.ajT=(t)=>{ajtp=(t==='POS'?'POS':'TPE');document.getElementById('aj-to').classList.toggle('on',ajtp==='TPE');document.getElementById('aj-pos').classList.toggle('on',ajtp==='POS');document.getElementById('aj-upfw').style.display=ajtp==='POS'?'':'none';ajC();};
 window.ajO=(v)=>{ajog=v;document.getElementById('aj-oy').classList.toggle('on',v);document.getElementById('aj-on').classList.toggle('on',!v);ajC();};
 window.ajS=(v)=>{ajsu=v;document.getElementById('aj-sy').classList.toggle('on',v);document.getElementById('aj-sn').classList.toggle('on',!v);ajC();};
+window.ajQ=(v)=>{ajq=v;document.getElementById('aj-qy').classList.toggle('on',!!v);document.getElementById('aj-qn').classList.toggle('on',!v);};
 window.ajC=()=>{const rv=cV({type:ajtp,tx:parseFloat(document.getElementById('aj-tx').value)||0,tpv:parseFloat(document.getElementById('aj-tpv').value)||0,og:ajog,sur:ajsu,upf:parseFloat(document.getElementById('aj-upf')?.value)||0});document.getElementById('aj-res').textContent=f(rv.t1);};
 window.ajC();
 
 window.ajSave=async()=>{
   const sn=document.getElementById('aj-s').value,cl=document.getElementById('aj-c').value.trim(),addr=document.getElementById('aj-a').value.trim();
   if(!sn){toast('Sélectionne un Sales','err');return;}if(!cl){toast('Entre le client','err');return;}
-  const data={salesNom:sn,tmId:session.tmId,client:cl,adresse:addr,type:ajtp,tx:parseFloat(document.getElementById('aj-tx').value)||0,tpv:parseFloat(document.getElementById('aj-tpv').value)||0,tpv_reel:parseFloat(document.getElementById('aj-reel').value)||0,og:ajog===1,sur:ajsu===1,upf:parseFloat(document.getElementById('aj-upf')?.value)||0,fp:parseFloat(document.getElementById('aj-fp').value)||0,mois:document.getElementById('aj-m').value,createdAt:new Date().toISOString(),lat:null,lng:null};
+  const data={salesNom:sn,tmId:session.tmId,client:cl,adresse:addr,type:ajtp,tx:parseFloat(document.getElementById('aj-tx').value)||0,tpv:parseFloat(document.getElementById('aj-tpv').value)||0,tpv_reel:parseFloat(document.getElementById('aj-reel').value)||0,og:ajog===1,sur:ajsu===1,quick:ajq===1,c2_mois:(document.getElementById('aj-c2m')?document.getElementById('aj-c2m').value:''),upf:parseFloat(document.getElementById('aj-upf')?.value)||0,fp:parseFloat(document.getElementById('aj-fp').value)||0,mois:document.getElementById('aj-m').value,createdAt:new Date().toISOString(),lat:null,lng:null};
   if(addr){try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`);const j=await r.json();if(j.length){data.lat=parseFloat(j[0].lat);data.lng=parseFloat(j[0].lon);}}catch(e){}}
   if(ajEditId){
     const prev=allVentes.find(x=>x.id===ajEditId);if(prev){data.createdAt=prev.createdAt||data.createdAt;if(!data.lat){data.lat=prev.lat;data.lng=prev.lng;}}
@@ -955,7 +961,7 @@ window.ajSave=async()=>{
     toast('✓ Vente enregistrée');
   }
   ajEditId=null;
-  ['aj-c','aj-a','aj-reel','aj-fp'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  ['aj-c','aj-a','aj-reel','aj-fp'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});ajQ(0);if(document.getElementById('aj-c2m'))document.getElementById('aj-c2m').value='';
   const sb=document.getElementById('aj-savebtn');if(sb)sb.textContent='✓ Enregistrer';
   goPage('ventes');
 };
@@ -975,7 +981,7 @@ window.editVente=(id)=>{
   document.getElementById('aj-tx').value=v.tx||'';document.getElementById('aj-tpv').value=v.tpv||'';document.getElementById('aj-reel').value=v.tpv_reel||'';
   document.getElementById('aj-fp').value=v.fp||'';if(document.getElementById('aj-upf'))document.getElementById('aj-upf').value=v.upf||'';
   document.getElementById('aj-m').value=v.mois||'Mai 2026';
-  ajT(v.type==='POS'?'POS':'TPE');ajO(v.og?1:0);ajS(v.sur?1:0);
+  ajT(v.type==='POS'?'POS':'TPE');ajO(v.og?1:0);ajS(v.sur?1:0);ajQ(v.quick?1:0);if(document.getElementById('aj-c2m'))document.getElementById('aj-c2m').value=v.c2_mois||'';
   const b=document.getElementById('aj-savebtn');if(b)b.textContent='✓ Mettre à jour';
   toast('Modifie puis enregistre');
 };
