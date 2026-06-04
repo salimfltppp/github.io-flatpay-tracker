@@ -216,6 +216,12 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
 .alert-body .alert-sub{font-size:12px;color:var(--t3);line-height:1.5;font-weight:500}
 
 /* print */
+
+.row-act-td{white-space:nowrap;text-align:right}
+.row-act-td button{background:var(--card2);border:1px solid var(--b);border-radius:7px;width:28px;height:28px;font-size:11px;cursor:pointer;margin-left:4px;transition:.12s;padding:0;line-height:1}
+.row-act-td button:hover{border-color:var(--ink)}
+.toast #toast-act{margin-left:11px;background:rgba(255,255,255,.22);border:none;color:inherit;font-weight:800;padding:4px 12px;border-radius:100px;cursor:pointer;font-family:inherit;font-size:12.5px}
+.toast.ok #toast-act{background:rgba(6,61,44,.18)}
 @media print{
   body{background:#fff!important;color:#000!important}
   .sidebar,.topbar,.btn{display:none!important}
@@ -375,7 +381,7 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
         </div>
         <div class="card">
           <div class="ct">Toutes les installations</div>
-          <div class="tw"><table><thead><tr><th>Sales</th><th>Client</th><th>Type</th><th>Taux</th><th>TPV</th><th>TPV réel</th><th>Comm.</th><th>FP</th><th>Écart</th><th>Mois</th></tr></thead><tbody id="tv-body"></tbody></table></div>
+          <div class="tw"><table><thead><tr><th>Sales</th><th>Client</th><th>Type</th><th>Taux</th><th>TPV</th><th>TPV réel</th><th>Comm.</th><th>FP</th><th>Écart</th><th>Mois</th><th></th></tr></thead><tbody id="tv-body"></tbody></table></div>
         </div>
       </div>
 
@@ -459,7 +465,7 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
                 <div class="field" style="margin-bottom:0"><label>Sales</label><select id="aj-s"><option value="">Sélectionne un Sales</option></select></div>
                 <div class="field" style="margin-bottom:0"><label>Client</label><input type="text" id="aj-c" placeholder="Nom du client"></div>
                 <div class="field" style="margin-bottom:0"><label>Adresse complète</label><input type="text" id="aj-a" placeholder="ex: 15 rue Gambetta, 34000 Montpellier"></div>
-                <div class="field" style="margin-bottom:0"><label>Type</label><div class="seg"><button class="sb2 on" id="aj-to" onclick="ajT('TO')">TPE</button><button class="sb2" id="aj-pos" onclick="ajT('POS')">POS</button></div></div>
+                <div class="field" style="margin-bottom:0"><label>Type</label><div class="seg"><button class="sb2 on" id="aj-to" onclick="ajT('TPE')">TPE</button><button class="sb2" id="aj-pos" onclick="ajT('POS')">POS</button></div></div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                   <div class="field" style="margin-bottom:0"><label>Taux (%)</label><input type="number" id="aj-tx" value="1.29" step="0.01" oninput="ajC()"></div>
                   <div class="field" style="margin-bottom:0"><label>TPV (€)</label><input type="number" id="aj-tpv" value="100000" oninput="ajC()"></div>
@@ -476,7 +482,7 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
                   <span style="font-size:12.5px;color:var(--acc)">Commission calculée</span>
                   <span style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--acc)" id="aj-res">—</span>
                 </div>
-                <button class="btn prim" onclick="ajSave()">✓ Enregistrer</button>
+                <button class="btn prim" id="aj-savebtn" onclick="ajSave()">✓ Enregistrer</button>
               </div>
             </div>
           </div>
@@ -503,7 +509,7 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
               <div class="ct">🗑️ Supprimer une vente</div>
               <div style="display:flex;flex-direction:column;gap:12px">
                 <div class="field" style="margin-bottom:0"><label>ID de la vente</label><input type="text" id="del-vente-id" placeholder="ex: a1b2c3d4e5" style="font-size:12.5px;padding:8px 12px"></div>
-                <button class="btn prim" onclick="const id=document.getElementById('del-vente-id').value;id?deleteVente(id):toast('Entre l'ID','err')" style="background:#e0454d;font-weight:800">Supprimer cette vente</button>
+                <button class="btn prim" onclick="const id=document.getElementById('del-vente-id').value;id?deleteVente(id):toast('Entre un ID','err')" style="background:#e0454d;font-weight:800">Supprimer cette vente</button>
               </div>
             </div>
           </div>
@@ -516,10 +522,10 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, query, where, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, query, where, doc, setDoc, getDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 const FB={apiKey:"AIzaSyDn1A3ViE1YvBV7F8DzEJ8wSmElTBCEhb4",authDomain:"flatpay-tracker-50615.firebaseapp.com",projectId:"flatpay-tracker-50615",storageBucket:"flatpay-tracker-50615.firebasestorage.app",messagingSenderId:"1087038039294",appId:"1:1087038039294:web:db633182fa34d1ba7cf1af"};
 const app=initializeApp(FB);const db=getFirestore(app);
-window._db=db;window._fb={collection,addDoc,onSnapshot,query,where,doc,setDoc,getDoc};
+window._db=db;window._fb={collection,addDoc,onSnapshot,query,where,doc,setDoc,getDoc,deleteDoc,updateDoc};
 
 // ── Tables PDF ──────────────────────────────────────────────────────────────
 const TO_R=[[0.64,0,0,0,0,0,80,90,115,130,5],[0.69,0,0,0,0,80,90,105,135,150,10],[0.74,0,0,0,80,90,105,120,150,170,15],[0.79,0,0,80,90,120,145,165,210,235,20],[0.84,0,90,135,180,215,245,310,350,380,25],[0.89,70,120,180,240,285,325,410,460,495,30],[0.94,80,140,210,280,335,380,480,540,585,35],[0.99,90,160,240,320,380,435,550,620,670,40],[1.04,100,180,270,360,430,490,620,700,755,45],[1.09,110,200,300,400,475,540,685,770,830,50],[1.14,120,220,330,440,525,600,760,855,925,55],[1.19,130,240,360,480,570,650,825,930,1005,60],[1.24,140,260,390,520,620,705,895,1005,1085,65],[1.29,150,280,420,560,665,760,965,1085,1170,70]];
@@ -536,7 +542,7 @@ function cV(d){const c100=gc(d.tx||0,d.tpv||0,d.type||'TO'),c1=r2(c100/2),og1=d.
 (()=>{const t=localStorage.getItem('fp_theme')||'dark';document.documentElement.setAttribute('data-theme',t);const b=document.getElementById('theme-btn');if(b)b.textContent=t==='dark'?'☀️':'🌙';})();
 window.toggleTheme=()=>{const c=document.documentElement.getAttribute('data-theme')||'dark';const n=c==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('fp_theme',n);const b=document.getElementById('theme-btn');if(b)b.textContent=n==='dark'?'☀️':'🌙';renderAll();};
 
-function toast(m,t='ok'){const el=document.getElementById('toast');el.textContent=m;el.className=`toast ${t} on`;setTimeout(()=>el.classList.remove('on'),2500);}
+function toast(m,t='ok',action){const el=document.getElementById('toast');el.innerHTML=m+(action?` <button id="toast-act">${action.label}</button>`:'');el.className=`toast ${t||'ok'} on`;if(action){const b=document.getElementById('toast-act');if(b)b.onclick=()=>{action.fn();el.classList.remove('on');};}clearTimeout(window._tt);window._tt=setTimeout(()=>el.classList.remove('on'),action?6000:2500);}
 
 let session=JSON.parse(localStorage.getItem('fp_tm')||'null');
 let allVentes=[],salesList=[],salaryReviews=[],objectifs={},mapMgr=null,charts={};
@@ -737,7 +743,7 @@ function renderVentes(){
   const el=document.getElementById('v-count');if(el)el.textContent=`${v.length} résultats`;
   const sel=document.getElementById('vf-s');if(sel&&!sel.dataset.loaded){const names=[...new Set(allVentes.map(x=>x.salesNom||'').filter(Boolean))];sel.innerHTML='<option value="">Tous les Sales</option>'+names.map(n=>`<option>${n}</option>`).join('');sel.dataset.loaded='1';}
   const tbody=document.getElementById('tv-body');if(!tbody)return;
-  tbody.innerHTML=v.map(x=>{const rv=cV(x);const ec=x.fp?r2(rv.c1-x.fp):null;return`<tr><td>${x.salesNom||'—'}</td><td>${x.client||'—'}</td><td><span class="badge ${x.type==='POS'?'a':'n'}">${x.type||'TO'}</span></td><td class="d">${(x.tx||0).toFixed(2)}%</td><td>${((x.tpv||0)/1000).toFixed(0)}k€</td><td class="d">${x.tpv_reel?(x.tpv_reel/1000).toFixed(1)+'k€':'-'}</td><td class="a">${f(rv.c1,true)}</td><td class="d">${x.fp?f(x.fp,true):'-'}</td><td class="${ec&&ec>1?'r':ec&&ec<-1?'g':'d'}">${ec!==null?(ec>0?'+':'')+f(ec,true):'-'}</td><td class="d">${x.mois||'-'}</td></tr>`;}).join('');
+  tbody.innerHTML=v.map(x=>{const rv=cV(x);const ec=x.fp?r2(rv.c1-x.fp):null;return`<tr><td>${x.salesNom||'—'}</td><td>${x.client||'—'}</td><td><span class="badge ${x.type==='POS'?'a':'n'}">${x.type==='POS'?'POS':'TPE'}</span></td><td class="d">${(x.tx||0).toFixed(2)}%</td><td>${((x.tpv||0)/1000).toFixed(0)}k€</td><td class="d">${x.tpv_reel?(x.tpv_reel/1000).toFixed(1)+'k€':'-'}</td><td class="a">${f(rv.c1,true)}</td><td class="d">${x.fp?f(x.fp,true):'-'}</td><td class="${ec&&ec>1?'r':ec&&ec<-1?'g':'d'}">${ec!==null?(ec>0?'+':'')+f(ec,true):'-'}</td><td class="d">${x.mois||'-'}</td><td class="row-act-td"><button onclick="event.stopPropagation();editVente('${x.id}')" title="Modifier">✏️</button><button onclick="event.stopPropagation();deleteVente('${x.id}')" title="Supprimer">🗑️</button></td></tr>`;}).join('');
 }
 window.renderVentes=renderVentes;
 
@@ -912,8 +918,8 @@ function renderSalesList(){const el=document.getElementById('sales-list');if(!el
 
 window.addSales=async()=>{const n=document.getElementById('ns-n').value.trim();if(!n){toast('Entre un nom','err');return;}try{await window._fb.addDoc(window._fb.collection(db,'sales'),{nom:n,tmId:session.tmId,createdAt:new Date().toISOString()});toast(n+' ajouté ✓');document.getElementById('ns-n').value='';}catch(e){salesList.push({id:Date.now().toString(),nom:n});popSelects();renderSalesList();renderObjectifs();toast(n+' ajouté ✓');document.getElementById('ns-n').value='';}};
 
-let ajtp='TO',ajog=1,ajsu=1;
-window.ajT=(t)=>{ajtp=t;document.getElementById('aj-to').classList.toggle('on',t==='TO');document.getElementById('aj-pos').classList.toggle('on',t==='POS');document.getElementById('aj-upfw').style.display=t==='POS'?'':'none';ajC();};
+let ajtp='TPE',ajog=1,ajsu=1,ajEditId=null;
+window.ajT=(t)=>{ajtp=(t==='POS'?'POS':'TPE');document.getElementById('aj-to').classList.toggle('on',ajtp==='TPE');document.getElementById('aj-pos').classList.toggle('on',ajtp==='POS');document.getElementById('aj-upfw').style.display=ajtp==='POS'?'':'none';ajC();};
 window.ajO=(v)=>{ajog=v;document.getElementById('aj-oy').classList.toggle('on',v);document.getElementById('aj-on').classList.toggle('on',!v);ajC();};
 window.ajS=(v)=>{ajsu=v;document.getElementById('aj-sy').classList.toggle('on',v);document.getElementById('aj-sn').classList.toggle('on',!v);ajC();};
 window.ajC=()=>{const rv=cV({type:ajtp,tx:parseFloat(document.getElementById('aj-tx').value)||0,tpv:parseFloat(document.getElementById('aj-tpv').value)||0,og:ajog,sur:ajsu,upf:parseFloat(document.getElementById('aj-upf')?.value)||0});document.getElementById('aj-res').textContent=f(rv.t1);};
@@ -924,11 +930,42 @@ window.ajSave=async()=>{
   if(!sn){toast('Sélectionne un Sales','err');return;}if(!cl){toast('Entre le client','err');return;}
   const data={salesNom:sn,tmId:session.tmId,client:cl,adresse:addr,type:ajtp,tx:parseFloat(document.getElementById('aj-tx').value)||0,tpv:parseFloat(document.getElementById('aj-tpv').value)||0,tpv_reel:parseFloat(document.getElementById('aj-reel').value)||0,og:ajog===1,sur:ajsu===1,upf:parseFloat(document.getElementById('aj-upf')?.value)||0,fp:parseFloat(document.getElementById('aj-fp').value)||0,mois:document.getElementById('aj-m').value,createdAt:new Date().toISOString(),lat:null,lng:null};
   if(addr){try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`);const j=await r.json();if(j.length){data.lat=parseFloat(j[0].lat);data.lng=parseFloat(j[0].lon);}}catch(e){}}
-  try{await window._fb.addDoc(window._fb.collection(db,'ventes'),data);toast('✓ Vente enregistrée');document.getElementById('aj-c').value='';document.getElementById('aj-a').value='';}
-  catch(e){allVentes.unshift({id:Date.now().toString(),...data});renderAll();toast('✓ Enregistrée (démo)');document.getElementById('aj-c').value='';}
+  if(ajEditId){
+    const prev=allVentes.find(x=>x.id===ajEditId);if(prev){data.createdAt=prev.createdAt||data.createdAt;if(!data.lat){data.lat=prev.lat;data.lng=prev.lng;}}
+    allVentes=allVentes.map(x=>x.id===ajEditId?{id:ajEditId,...data}:x);renderAll();if(mapMgr)renderMap();
+    try{const {doc,updateDoc}=window._fb;await updateDoc(doc(window._db,'ventes',ajEditId),data);}catch(e){}
+    toast('✓ Vente mise à jour');
+  }else{
+    let nid=Date.now().toString();
+    try{const ref=await window._fb.addDoc(window._fb.collection(db,'ventes'),data);nid=ref.id;}catch(e){}
+    allVentes.unshift({id:nid,...data});renderAll();if(mapMgr)renderMap();
+    toast('✓ Vente enregistrée');
+  }
+  ajEditId=null;
+  ['aj-c','aj-a','aj-reel','aj-fp'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  const sb=document.getElementById('aj-savebtn');if(sb)sb.textContent='✓ Enregistrer';
+  goPage('ventes');
 };
 
-window.deleteVente=async(id)=>{if(!confirm('Supprimer cette vente ?\n(impossible à annuler)'))return;try{const {doc,deleteDoc}=window._fb;await deleteDoc(doc(window._db,'ventes',id));toast('✓ Vente supprimée');renderAll()}catch(e){allVentes=allVentes.filter(v=>v.id!==id);renderAll();toast('✓ Vente supprimée')}};
+window.deleteVente=async(id)=>{
+  const v=allVentes.find(x=>x.id===id);if(!v)return;
+  if(!confirm('Supprimer "'+(v.client||'cette vente')+'" ?'))return;
+  allVentes=allVentes.filter(x=>x.id!==id);renderAll();if(mapMgr)renderMap();
+  try{const {doc,deleteDoc}=window._fb;await deleteDoc(doc(window._db,'ventes',id));}catch(e){}
+  toast('Vente supprimée',null,{label:'Annuler',fn:()=>restoreVente(v)});
+};
+async function restoreVente(v){const {id,...data}=v;let nid=id;try{const ref=await window._fb.addDoc(window._fb.collection(db,'ventes'),data);nid=ref.id;}catch(e){}allVentes.unshift({id:nid,...data});renderAll();if(mapMgr)renderMap();toast('Vente restaurée ✓');}
+window.editVente=(id)=>{
+  const v=allVentes.find(x=>x.id===id);if(!v)return;ajEditId=id;
+  goPage('saisie');document.querySelectorAll('.sbi').forEach(s=>{if((s.getAttribute('onclick')||'').includes('saisie'))s.classList.add('on');});
+  document.getElementById('aj-s').value=v.salesNom||'';document.getElementById('aj-c').value=v.client||'';document.getElementById('aj-a').value=v.adresse||'';
+  document.getElementById('aj-tx').value=v.tx||'';document.getElementById('aj-tpv').value=v.tpv||'';document.getElementById('aj-reel').value=v.tpv_reel||'';
+  document.getElementById('aj-fp').value=v.fp||'';if(document.getElementById('aj-upf'))document.getElementById('aj-upf').value=v.upf||'';
+  document.getElementById('aj-m').value=v.mois||'Mai 2026';
+  ajT(v.type==='POS'?'POS':'TPE');ajO(v.og?1:0);ajS(v.sur?1:0);
+  const b=document.getElementById('aj-savebtn');if(b)b.textContent='✓ Mettre à jour';
+  toast('Modifie puis enregistre');
+};
 
 window.srSave=async()=>{
   const sn=document.getElementById('sr-s').value;if(!sn){toast('Sélectionne un Sales','err');return;}
