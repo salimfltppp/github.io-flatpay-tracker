@@ -611,14 +611,14 @@ function renderHome(){
   // recents
   const rc=t.v.slice(0,4),el=$('recent');
   if(!rc.length){el.innerHTML='<div class="empty"><div class="empty-ic">📋</div><h3>Aucune vente ce mois</h3><p>Appuie sur + pour ajouter ta première installation</p></div>';}
-  else el.innerHTML=rc.map(v=>{const rv=calcV(v);return`<div class="row"><div><div class="row-name">${v.client||'—'}</div><div class="row-meta"><span class="tag ${v.type==='POS'?'pos':'to'}">${v.type||'TO'}</span>${(v.tx||0).toFixed(2)}% · ${((v.tpv||0)/1000).toFixed(0)}k€</div></div><div><div class="row-amt a mono">${f(rv.t1)}</div><div class="row-st">${v.adresse||''}</div></div></div>`;}).join('');
+  else el.innerHTML=rc.map(v=>{const rv=calcV(v);return`<div class="row"><div><div class="row-name">${v.client||'—'}</div><div class="row-meta"><span class="tag ${v.type==='POS'?'pos':'to'}">${v.type||'TO'}</span>${(v.tx||0).toFixed(2)}% · ${((v.tpv||0)/1000).toFixed(0)}k€</div></div><div><div class="row-amt a mono">${f(rv.t1)}</div><div class="row-st">${v.adresse||''}</div><div style="margin-top:6px;font-size:9px;color:var(--t3);font-family:monospace;letter-spacing:.02em">ID: ${v.id.substring(0,12)}...</div></div></div>`;}).join('');
 
   // C#2
   const pending=allVentes.filter(v=>{const rv=calcV(v);const r=v.tpv_reel||0;return r>0&&r<rv.seuil;});
   $('c2-pill').textContent=t.c2ready.length+pending.length;
   const cel=$('c2-list');
   if(!t.c2ready.length&&!pending.length){cel.innerHTML='<div style="color:var(--t3);font-size:12.5px;font-weight:500">Aucune C#2 en attente.</div>';}
-  else cel.innerHTML=[...t.c2ready,...pending].map(v=>{const rv=calcV(v);const r=v.tpv_reel||0;const ready=r>=rv.seuil&&rv.seuil>0;const pct=rv.seuil>0?Math.min(100,Math.round(r/rv.seuil*100)):0;return`<div class="row" style="border-left:3px solid ${ready?'var(--grn)':'var(--amb)'}"><div><div class="row-name">${v.client||'—'}</div><div class="row-meta">${ready?'<span class="tag g">seuil atteint — à réclamer</span>':pct+'% du seuil · '+(r/1000).toFixed(1)+'k / '+(rv.seuil/1000).toFixed(1)+'k€'}</div></div><div class="row-amt mono" style="color:${ready?'var(--grn)':'var(--amb)'}">${f(rv.c2_due)}</div></div>`;}).join('');
+  else cel.innerHTML=[...t.c2ready,...pending].map(v=>{const rv=calcV(v);const r=v.tpv_reel||0;const ready=r>=rv.seuil&&rv.seuil>0;const pct=rv.seuil>0?Math.min(100,Math.round(r/rv.seuil*100)):0;return`<div class="row" style="border-left:3px solid ${ready?'var(--grn)':'var(--amb)'}"><div><div class="row-name">${v.client||'—'}</div><div class="row-meta">${ready?'<span class="tag g">seuil atteint — à réclamer</span>':pct+'% du seuil · '+(r/1000).toFixed(1)+'k / '+(rv.seuil/1000).toFixed(1)+'k€'}</div></div><div><div class="row-amt mono" style="color:${ready?'var(--grn)':'var(--amb)'}">${f(rv.c2_due)}</div><div style="margin-top:6px;font-size:9px;color:var(--t3);font-family:monospace;letter-spacing:.02em">ID: ${v.id.substring(0,12)}...</div></div>`;}).join('');
 }
 
 /* ── VENTES ── */
