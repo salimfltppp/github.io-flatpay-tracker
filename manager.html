@@ -48,7 +48,7 @@ body{font-family:'Archivo',sans-serif;background:var(--bg);color:var(--t1);min-h
 #auth{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px}
 .aw{width:100%;max-width:390px}
 .fp-logo{display:flex;align-items:center;gap:9px;margin-bottom:8px;color:var(--ink)}
-.fp-mark{width:28px;height:28px;background:var(--ink);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:300;color:var(--bg);line-height:1}
+.fp-mark{width:28px;height:28px;background:var(--ink);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:300;color:var(--bg);line-height:1}
 .fp-name{font-size:17px;font-weight:800;letter-spacing:-.03em}
 .auth-badge{display:inline-block;padding:4px 11px;border-radius:100px;background:var(--mint);color:#063d2c;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:26px}
 .auth-card{background:var(--card);border:1px solid var(--b);border-radius:22px;padding:28px}
@@ -75,7 +75,7 @@ select option{background:var(--surf)}
 .sidebar{width:240px;background:var(--surf);border-right:1px solid var(--b);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:50}
 .sb-top{padding:20px 18px 16px;border-bottom:1px solid var(--b)}
 .sb-logo{display:flex;align-items:center;gap:9px;margin-bottom:3px;color:var(--ink)}
-.sb-mark{width:28px;height:28px;background:var(--ink);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:300;color:var(--bg);line-height:1}
+.sb-mark{width:28px;height:28px;background:var(--ink);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:300;color:var(--bg);line-height:1}
 .sb-name{font-size:15px;font-weight:800;letter-spacing:-.03em}
 .sb-role{font-size:9.5px;color:var(--t3);padding-left:37px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
 .sb-user{padding:14px 18px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:11px}
@@ -459,7 +459,7 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
                 <div class="field" style="margin-bottom:0"><label>Sales</label><select id="aj-s"><option value="">Sélectionne un Sales</option></select></div>
                 <div class="field" style="margin-bottom:0"><label>Client</label><input type="text" id="aj-c" placeholder="Nom du client"></div>
                 <div class="field" style="margin-bottom:0"><label>Adresse complète</label><input type="text" id="aj-a" placeholder="ex: 15 rue Gambetta, 34000 Montpellier"></div>
-                <div class="field" style="margin-bottom:0"><label>Type</label><div class="seg"><button class="sb2 on" id="aj-to" onclick="ajT('TO')">Term. only</button><button class="sb2" id="aj-pos" onclick="ajT('POS')">POS</button></div></div>
+                <div class="field" style="margin-bottom:0"><label>Type</label><div class="seg"><button class="sb2 on" id="aj-to" onclick="ajT('TO')">TPE</button><button class="sb2" id="aj-pos" onclick="ajT('POS')">POS</button></div></div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                   <div class="field" style="margin-bottom:0"><label>Taux (%)</label><input type="number" id="aj-tx" value="1.29" step="0.01" oninput="ajC()"></div>
                   <div class="field" style="margin-bottom:0"><label>TPV (€)</label><input type="number" id="aj-tpv" value="100000" oninput="ajC()"></div>
@@ -498,6 +498,13 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
                 <button class="btn sm prim" onclick="addSales()">Ajouter</button>
               </div>
               <div id="sales-list"></div>
+            </div>
+            <div class="card">
+              <div class="ct">🗑️ Supprimer une vente</div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div class="field" style="margin-bottom:0"><label>ID de la vente</label><input type="text" id="del-vente-id" placeholder="ex: a1b2c3d4e5" style="font-size:12.5px;padding:8px 12px"></div>
+                <button class="btn prim" onclick="const id=document.getElementById('del-vente-id').value;id?deleteVente(id):toast('Entre l'ID','err')" style="background:#e0454d;font-weight:800">Supprimer cette vente</button>
+              </div>
             </div>
           </div>
         </div>
@@ -646,7 +653,7 @@ function buildMainCharts(v){
   const months=[...new Set(allVentes.map(x=>x.mois||'').filter(Boolean))].sort();
   dc('ch-comm');charts['ch-comm']=new Chart(document.getElementById('ch-comm'),{type:'bar',data:{labels:months.map(m=>m.replace(' 2026','').replace(' 2027','')),datasets:[{label:'Calculé',data:months.map(m=>{const mv=allVentes.filter(x=>x.mois===m);return Math.round(r2(mv.reduce((s,x)=>s+cV(x).t1,0))+vTO(mv.length)+vPOS(mv.filter(x=>x.type==='POS').length));}),backgroundColor:'#0a0a0a',borderRadius:5,borderSkipped:false},{label:'Versé',data:months.map(m=>{const sr=salaryReviews.find(s=>s.mois===m);return sr?sr.bulletin||0:0;}),backgroundColor:'#ef4444aa',borderRadius:5,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:gr},ticks:tk},y:{grid:{color:gr},ticks:{...tk,callback:v=>v.toLocaleString('fr-FR')+'€'}}}}});
   const nto=v.filter(x=>x.type==='TO').length,npos=v.filter(x=>x.type==='POS').length;
-  dc('ch-type');charts['ch-type']=new Chart(document.getElementById('ch-type'),{type:'doughnut',data:{labels:['Term. only','POS'],datasets:[{data:[nto,npos],backgroundColor:['#0a0a0a','#22c55e'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:C.text,font:{size:11}}}}}});
+  dc('ch-type');charts['ch-type']=new Chart(document.getElementById('ch-type'),{type:'doughnut',data:{labels:['TPE','POS'],datasets:[{data:[nto,npos],backgroundColor:['#0a0a0a','#22c55e'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:C.text,font:{size:11}}}}}});
 }
 
 // ── TEAM ──────────────────────────────────────────────────────────────────
@@ -771,7 +778,7 @@ function renderMap(){
   document.getElementById('map-nb').textContent=wc.length;
   const cities=new Set(wc.map(v=>(v.adresse||'').split(',').pop().trim()).filter(Boolean));
   document.getElementById('map-vc').textContent=cities.size;
-  wc.forEach(v=>{const rv=cV(v);const reel=v.tpv_reel||0;const rdy=reel>=rv.seuil&&rv.seuil>0;const ec=(v.fp||0)>0&&r2(rv.c1-(v.fp||0))>5;const col=ec?'#ef4444':rdy?'#22c55e':reel>0?'#f59e0b':'#0a0a0a';L.circleMarker([v.lat,v.lng],{radius:9,fillColor:col,color:'rgba(255,255,255,.15)',weight:1.5,fillOpacity:.9}).addTo(mapMgr).bindPopup(`<div style="font-family:Inter,sans-serif;min-width:170px;padding:2px"><div style="font-weight:700;font-size:13px;margin-bottom:3px">${v.client||'—'}</div><div style="font-size:11.5px;color:#888;margin-bottom:5px">${v.salesNom||'—'} · ${v.adresse||''}</div><div style="display:flex;justify-content:space-between"><span style="color:#0a0a0a;font-weight:600">${f(rv.t1,true)}</span><span style="color:${col};font-size:11px">${rdy?'✅ C#2':reel>0?'⏳':''}</span></div>${ec?`<div style="color:#ef4444;font-size:11px;margin-top:3px">⚠️ Écart: +${f(r2(rv.c1-(v.fp||0)),true)}</div>`:''}</div>`);});
+  wc.forEach(v=>{const rv=cV(v);const reel=v.tpv_reel||0;const rdy=reel>=rv.seuil&&rv.seuil>0;const ec=(v.fp||0)>0&&r2(rv.c1-(v.fp||0))>5;const col=ec?'#ef4444':rdy?'#22c55e':reel>0?'#f59e0b':'#0a0a0a';L.circleMarker([v.lat,v.lng],{radius:5,fillColor:col,color:'rgba(255,255,255,.15)',weight:1.5,fillOpacity:.9}).addTo(mapMgr).bindPopup(`<div style="font-family:Inter,sans-serif;min-width:170px;padding:2px"><div style="font-weight:700;font-size:13px;margin-bottom:3px">${v.client||'—'}</div><div style="font-size:11.5px;color:#888;margin-bottom:5px">${v.salesNom||'—'} · ${v.adresse||''}</div><div style="display:flex;justify-content:space-between"><span style="color:#0a0a0a;font-weight:600">${f(rv.t1,true)}</span><span style="color:${col};font-size:11px">${rdy?'✅ C#2':reel>0?'⏳':''}</span></div>${ec?`<div style="color:#ef4444;font-size:11px;margin-top:3px">⚠️ Écart: +${f(r2(rv.c1-(v.fp||0)),true)}</div>`:''}</div>`);});
 }
 
 // ── OBJECTIFS ──────────────────────────────────────────────────────────────
@@ -920,6 +927,8 @@ window.ajSave=async()=>{
   try{await window._fb.addDoc(window._fb.collection(db,'ventes'),data);toast('✓ Vente enregistrée');document.getElementById('aj-c').value='';document.getElementById('aj-a').value='';}
   catch(e){allVentes.unshift({id:Date.now().toString(),...data});renderAll();toast('✓ Enregistrée (démo)');document.getElementById('aj-c').value='';}
 };
+
+window.deleteVente=async(id)=>{if(!confirm('Supprimer cette vente ?\n(impossible à annuler)'))return;try{const {doc,deleteDoc}=window._fb;await deleteDoc(doc(window._db,'ventes',id));toast('✓ Vente supprimée');renderAll()}catch(e){allVentes=allVentes.filter(v=>v.id!==id);renderAll();toast('✓ Vente supprimée')}};
 
 window.srSave=async()=>{
   const sn=document.getElementById('sr-s').value;if(!sn){toast('Sélectionne un Sales','err');return;}

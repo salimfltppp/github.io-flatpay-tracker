@@ -188,7 +188,7 @@ select option{background:var(--surf)}
 
 /* seg */
 .seg{display:flex;background:var(--card2);border:1px solid var(--line);border-radius:var(--r);padding:3px;gap:3px}
-.sb{flex:1;padding:10px;border:none;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;background:transparent;color:var(--t3);font-family:inherit;transition:.15s;letter-spacing:-.01em}
+.sb{flex:1;padding:10px;border:none;border-radius:5px;font-size:12.5px;font-weight:800;cursor:pointer;background:transparent;color:var(--t3);font-family:inherit;transition:.15s;letter-spacing:-.01em}
 .sb.on{background:var(--ink);color:var(--bg)}
 
 /* sim */
@@ -251,6 +251,9 @@ select option{background:var(--surf)}
 .toast.err{background:var(--red);color:#fff}
 
 @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+.row-del{font-size:13px;background:none;border:none;cursor:pointer;opacity:.5;transition:.15s;padding:0;margin:0}
+.row-del:hover{opacity:1}
 @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .stagger>*{animation:rise .5s both}
 .stagger>*:nth-child(1){animation-delay:.02s}.stagger>*:nth-child(2){animation-delay:.07s}
@@ -422,7 +425,7 @@ function toggleTheme(){
       </div>
       <div class="card">
         <div class="field"><label>Type de contrat</label>
-          <div class="seg"><button class="sb on" id="s-to" onclick="simType('TO')">Turnover</button><button class="sb" id="s-pos" onclick="simType('POS')">POS</button></div>
+          <div class="seg"><button class="sb on" id="s-to" onclick="simType('TO')">TPE</button><button class="sb" id="s-pos" onclick="simType('POS')">POS</button></div>
         </div>
         <div class="field" style="margin-top:14px"><label>Taux négocié (%)</label><input type="number" step="0.01" id="s-tx" value="1.29" oninput="simCalc()"></div>
         <div class="field"><label>TPV annuel estimé (€)</label><input type="number" id="s-tpv" value="120000" oninput="simCalc()"></div>
@@ -467,7 +470,7 @@ function toggleTheme(){
     <div class="sheet-h">Nouvelle vente</div>
     <div class="sheet-d">Renseigne le contrat pour suivre ta commission.</div>
     <div class="field"><label>Type de contrat</label>
-      <div class="seg"><button class="sb on" id="f-to" onclick="fType('TO')">Turnover</button><button class="sb" id="f-pos" onclick="fType('POS')">POS</button></div>
+      <div class="seg"><button class="sb on" id="f-to" onclick="fType('TO')">TPE</button><button class="sb" id="f-pos" onclick="fType('POS')">POS</button></div>
     </div>
     <div class="field" style="margin-top:14px"><label>Nom du client</label><input id="f-client" placeholder="ex : Boulangerie Paul"></div>
     <div class="field"><label>Adresse (pour la carte)</label><input id="f-adr" placeholder="ex : 12 rue Foch, Montpellier"></div>
@@ -490,6 +493,7 @@ function toggleTheme(){
     <div class="preview"><div class="pv-l">Commission 1ère calculée</div><div class="pv-v" id="f-res">—</div></div>
     <button class="btn prim" style="margin-top:14px" onclick="saveVente()">Enregistrer la vente</button>
     <button class="btn sec" onclick="closeForm()">Annuler</button>
+    <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)"><div style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:11px">🗑️ Supprimer une vente</div><input type="text" id="del-id" placeholder="ID de la vente" style="margin-bottom:9px"><button class="btn" onclick="const id=document.getElementById('del-id').value;id?deleteVente(id):toast('Entre l'ID','err')" style="width:100%;background:#e0454d;color:#fff;font-weight:800;font-size:12px">Supprimer</button></div>
   </div>
 </div>
 
@@ -722,7 +726,7 @@ window.goPage=(id,el)=>{
 };
 function renderMap(){
   if(!mapO)return;markers.forEach(m=>m.remove());markers=[];
-  allVentes.filter(v=>v.lat&&v.lng).forEach(v=>{const rv=calcV(v);const r=v.tpv_reel||0;const ready=r>=rv.seuil&&rv.seuil>0;const c=ready?'#34d399':r>0?'#fbbf4c':'#6a5cff';const m=L.circleMarker([v.lat,v.lng],{radius:9,fillColor:c,color:'rgba(255,255,255,.35)',weight:1.5,fillOpacity:.92}).addTo(mapO).bindPopup(`<div style="font-family:Hanken Grotesk,sans-serif;min-width:150px"><strong>${v.client||'—'}</strong><br><span style="font-size:11px;color:#888">${v.adresse||''}</span><br><span style="color:#6a5cff;font-weight:700">${f(rv.t1)}</span>${ready?'<br><span style="color:#0f9d6f;font-size:11px">✅ C#2 prête</span>':''}</div>`);markers.push(m);});
+  allVentes.filter(v=>v.lat&&v.lng).forEach(v=>{const rv=calcV(v);const r=v.tpv_reel||0;const ready=r>=rv.seuil&&rv.seuil>0;const c=ready?'#34d399':r>0?'#fbbf4c':'#6a5cff';const m=L.circleMarker([v.lat,v.lng],{radius:5,fillColor:c,color:'rgba(255,255,255,.35)',weight:1.5,fillOpacity:.92}).addTo(mapO).bindPopup(`<div style="font-family:Hanken Grotesk,sans-serif;min-width:150px"><strong>${v.client||'—'}</strong><br><span style="font-size:11px;color:#888">${v.adresse||''}</span><br><span style="color:#6a5cff;font-weight:700">${f(rv.t1)}</span>${ready?'<br><span style="color:#0f9d6f;font-size:11px">✅ C#2 prête</span>':''}</div>`);markers.push(m);});
 }
 
 /* ── FORM ── */
@@ -756,7 +760,24 @@ window.simCalc=()=>{
   const seuil=Math.round(tpv/365*30);
   $('sim-seuil').textContent=`⚡ Seuil C#2 : il faut un TPV 30 jours ≥ ${seuil.toLocaleString('fr-FR')} € (≈ ${Math.round(tpv/365).toLocaleString('fr-FR')} €/jour) pour débloquer la 2ème partie.`;
 };
+window.deleteVente=async(id)=>{if(!confirm('Supprimer cette vente ?\n(impossible à annuler)'))return;try{const {doc,deleteDoc}=window._fb;await deleteDoc(doc(window._db,'ventes',id));toast('✓ Vente supprimée');renderRecent();renderC2();renderTpv()}catch(e){allVentes=allVentes.filter(v=>v.id!==id);toast('✓ Vente supprimée');renderRecent();renderC2();renderTpv()}};
 window.simCalc();
+
+window.deleteVente = async (id) => {
+  if(!confirm('Supprimer cette vente ? (impossible à annuler)')) return;
+  try {
+    const {collection, doc, deleteDoc} = window._fb;
+    await deleteDoc(doc(window._db, 'ventes', id));
+    toast('Vente supprimée ✓');
+    allVentes = allVentes.filter(v => v.id !== id);
+    renderAll();
+  } catch(e) {
+    allVentes = allVentes.filter(v => v.id !== id);
+    renderAll();
+    toast('Vente supprimée ✓');
+  }
+};
+
 </script>
 
 </body>
