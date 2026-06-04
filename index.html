@@ -505,7 +505,11 @@ function toggleTheme(){
       </select></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
-      <div class="field"><label>Quick install (≤ 7 j)</label><div class="seg"><button class="sb" id="f-qy" onclick="fQuick(1)">Oui</button><button class="sb on" id="f-qn" onclick="fQuick(0)">Non</button></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
+        <div class="field"><label>Date réception lien</label><input type="date" id="f-dlien" oninput="fDelai()"></div>
+        <div class="field"><label>Date activation TPE</label><input type="date" id="f-dactiv" oninput="fDelai()"></div>
+      </div>
+      <div id="f-delai" class="obj-source" style="margin-bottom:14px">Renseigne les 2 dates → quick install calculé automatiquement</div>
       <div class="field"><label>Mois seuil C#2 atteint</label><select id="form-c2mois">
         <option value="">Pas encore</option><option>Mars 2026</option><option>Avril 2026</option><option>Mai 2026</option><option>Juin 2026</option><option>Juillet 2026</option>
         <option>Août 2026</option><option>Septembre 2026</option><option>Octobre 2026</option><option>Novembre 2026</option><option>Décembre 2026</option>
@@ -533,6 +537,7 @@ function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=2
 function volTO(n){if(n>=35)return 2600;if(n>=30)return 1900;if(n>=25)return 1300;if(n>=20)return 800;if(n>=15)return 400;return 0;}
 function volPOS(n){return n>=5?200+(n-5)*100:0;}
 const MOIS_ORD=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];function nextMonth(ms){if(!ms)return '';const p=ms.split(' ');const i=MOIS_ORD.indexOf(p[0]);if(i<0)return '';let y=parseInt(p[1])||0,j=i+1;if(j>11){j=0;y++;}return MOIS_ORD[j]+' '+y;}
+function delaiJours(a,b){if(!a||!b)return null;const x=new Date(a),y=new Date(b);if(isNaN(x)||isNaN(y))return null;return Math.round((y-x)/86400000);}
 function quickB(nb,nq){if(nb<15)return 0;const p=nb?nq/nb*100:0;if(p>=90)return 900;if(p>=80)return 800;if(p>=70)return 700;if(p>=60)return 600;return 0;}
 function c2MonthOf(v){return v.c2_mois?nextMonth(v.c2_mois):'';}
 function r2(v){return Math.round(v*100)/100;}
@@ -769,12 +774,12 @@ function renderMap(){
 
 /* ── FORM (ajout + édition) ── */
 let ftp='TPE',fog=1,fsur=1,fq=0;
-window.openForm=()=>{window._editId=null;$('sheet-title').textContent='Nouvelle vente';$('sheet-desc').textContent='Renseigne le contrat pour suivre ta commission.';$('save-btn').textContent='Enregistrer la vente';['f-client','f-adr','f-tpvr'].forEach(i=>$(i).value='');$('f-tx').value='';$('f-tpv').value='';$('f-upf').value='';fType('TPE');fOG(1);fSur(1);fQuick(0);if($('form-mois'))$('form-mois').value=CURRENT_MOIS;if($('form-c2mois'))$('form-c2mois').value='';$('sheet').classList.add('on');fCalc();};
+window.openForm=()=>{window._editId=null;$('sheet-title').textContent='Nouvelle vente';$('sheet-desc').textContent='Renseigne le contrat pour suivre ta commission.';$('save-btn').textContent='Enregistrer la vente';['f-client','f-adr','f-tpvr'].forEach(i=>$(i).value='');$('f-tx').value='';$('f-tpv').value='';$('f-upf').value='';fType('TPE');fOG(1);fSur(1);$('f-dlien').value='';$('f-dactiv').value='';fDelai();if($('form-mois'))$('form-mois').value=CURRENT_MOIS;if($('form-c2mois'))$('form-c2mois').value='';$('sheet').classList.add('on');fCalc();};
 window.closeForm=()=>{window._editId=null;$('sheet').classList.remove('on');};
 window.fType=t=>{ftp=t;$('f-to').classList.toggle('on',t==='TPE');$('f-pos').classList.toggle('on',t==='POS');$('f-upf-w').style.display=t==='POS'?'':'none';fCalc();};
 window.fOG=v=>{fog=v;$('f-oy').classList.toggle('on',!!v);$('f-on').classList.toggle('on',!v);fCalc();};
 window.fSur=v=>{fsur=v;$('f-sy').classList.toggle('on',!!v);$('f-sn').classList.toggle('on',!v);fCalc();};
-window.fQuick=v=>{fq=v;$('f-qy').classList.toggle('on',!!v);$('f-qn').classList.toggle('on',!v);};
+window.fDelai=()=>{const j=delaiJours($('f-dlien').value,$('f-dactiv').value);const el=$('f-delai');if(j===null){fq=0;el.textContent='Renseigne les 2 dates → quick install calculé automatiquement';}else if(j<0){fq=0;el.textContent='⚠️ Activation avant réception du lien ?';}else{fq=j<=7?1:0;el.textContent='Délai : '+j+' jour'+(j>1?'s':'')+' → '+(fq?'✓ Quick install (≤7j)':'✗ hors délai (>7j)');}};
 window.fCalc=()=>{const d={type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,og:fog,sur:fsur,upf:parseFloat($('f-upf').value)||0};$('f-res').textContent=f(calcV(d).t1);};
 
 window.editVente=(id)=>{
@@ -784,7 +789,7 @@ window.editVente=(id)=>{
   $('f-client').value=v.client||'';$('f-adr').value=v.adresse||'';
   $('f-tx').value=v.tx||'';$('f-tpv').value=v.tpv||'';$('f-upf').value=v.upf||'';$('f-tpvr').value=v.tpv_reel||'';
   if($('form-mois'))$('form-mois').value=v.mois||CURRENT_MOIS;
-  fType(v.type==='POS'?'POS':'TPE');fOG(v.og?1:0);fSur(v.sur?1:0);fQuick(v.quick?1:0);
+  fType(v.type==='POS'?'POS':'TPE');fOG(v.og?1:0);fSur(v.sur?1:0);$('f-dlien').value=v.dlien||'';$('f-dactiv').value=v.dactiv||'';fDelai();
   if($('form-c2mois'))$('form-c2mois').value=v.c2_mois||'';
   $('sheet').classList.add('on');fCalc();
 };
@@ -794,7 +799,7 @@ window.saveVente=async()=>{
   const adresse=$('f-adr').value.trim();
   const editing=window._editId;
   const prev=editing?allVentes.find(x=>x.id===editing):null;
-  const data={salesNom:session.nom,tmId:session.tmId,client,adresse,type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,tpv_reel:parseFloat($('f-tpvr').value)||0,og:fog===1,sur:fsur===1,quick:fq===1,c2_mois:($('form-c2mois')?$('form-c2mois').value:''),upf:parseFloat($('f-upf').value)||0,mois:($('form-mois')?$('form-mois').value:CURRENT_MOIS),fp:prev?prev.fp||0:0,createdAt:prev?prev.createdAt||new Date().toISOString():new Date().toISOString(),lat:prev?prev.lat:null,lng:prev?prev.lng:null};
+  const data={salesNom:session.nom,tmId:session.tmId,client,adresse,type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,tpv_reel:parseFloat($('f-tpvr').value)||0,og:fog===1,sur:fsur===1,quick:fq===1,dlien:$('f-dlien').value||'',dactiv:$('f-dactiv').value||'',c2_mois:($('form-c2mois')?$('form-c2mois').value:''),upf:parseFloat($('f-upf').value)||0,mois:($('form-mois')?$('form-mois').value:CURRENT_MOIS),fp:prev?prev.fp||0:0,createdAt:prev?prev.createdAt||new Date().toISOString():new Date().toISOString(),lat:prev?prev.lat:null,lng:prev?prev.lng:null};
   if(adresse&&(!prev||prev.adresse!==adresse)){try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(adresse)}&limit=1`);const j=await r.json();if(j.length){data.lat=parseFloat(j[0].lat);data.lng=parseFloat(j[0].lon);}}catch(e){}}
   CURRENT_MOIS=data.mois||CURRENT_MOIS;
   if(editing){
