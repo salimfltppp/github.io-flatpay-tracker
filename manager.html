@@ -478,9 +478,11 @@ td.a{color:var(--t1);font-weight:800}td.g{color:var(--grn);font-weight:800}td.r{
                 <div class="field" style="margin-bottom:0"><label>TPV réel 30j (€)</label><input type="number" id="aj-reel" placeholder="Optionnel"></div>
                 <div class="field" style="margin-bottom:0"><label>Comm. FP annoncée (€)</label><input type="number" id="aj-fp" placeholder="Après salary review"></div>
                 <div class="field" style="margin-bottom:0"><label>Mois</label><select id="aj-m"><option>Mai 2026</option><option>Juin 2026</option><option>Juillet 2026</option><option>Avril 2026</option><option>Mars 2026</option></select></div>
-                <div class="field" style="margin-bottom:0"><label>Date réception lien</label><input type="date" id="aj-dlien" oninput="ajDelai()" style="font-size:12.5px;padding:8px 12px"></div>
-                <div class="field" style="margin-bottom:0"><label>Date activation TPE</label><input type="date" id="aj-dactiv" oninput="ajDelai()" style="font-size:12.5px;padding:8px 12px"></div>
-                <div class="field" style="margin-bottom:0;grid-column:1/-1"><div id="aj-delai" class="alert i" style="margin:0">Renseigne les 2 dates → quick install calculé</div></div>
+                <div class="field" style="margin-bottom:0"><label>Statut installation</label><select id="aj-statut" style="font-size:12.5px;padding:8px 12px">
+                  <option value="à installer">À installer</option>
+                  <option value="en cours">En cours</option>
+                  <option value="installé">Installé (≥150€)</option>
+                </select></div>
                 <div class="field" style="margin-bottom:0"><label>Mois seuil C#2 atteint</label><select id="aj-c2m"><option value="">Pas encore</option><option>Mars 2026</option><option>Avril 2026</option><option>Mai 2026</option><option>Juin 2026</option><option>Juillet 2026</option><option>Août 2026</option><option>Septembre 2026</option><option>Octobre 2026</option></select></div>
                 <div style="background:var(--accl);border:.5px solid var(--accb);border-radius:var(--r);padding:14px;display:flex;justify-content:space-between;align-items:center">
                   <span style="font-size:12.5px;color:var(--acc)">Commission calculée</span>
@@ -540,7 +542,7 @@ function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=2
 function vTO(n){if(n>=35)return 2600;if(n>=30)return 1900;if(n>=25)return 1300;if(n>=20)return 800;if(n>=15)return 400;return 0;}
 function vPOS(n){return n>=5?200+(n-5)*100:0;}
 const MOIS_ORD=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];function nextMonth(ms){if(!ms)return '';const p=ms.split(' ');const i=MOIS_ORD.indexOf(p[0]);if(i<0)return '';let y=parseInt(p[1])||0,j=i+1;if(j>11){j=0;y++;}return MOIS_ORD[j]+' '+y;}
-function delaiJours(a,b){if(!a||!b)return null;const x=new Date(a),y=new Date(b);if(isNaN(x)||isNaN(y))return null;return Math.round((y-x)/86400000);}
+function isQuickInstall(v){if(v.statut!=='installé')return false;const created=new Date(v.createdAt||new Date());const now=new Date();const days=(now-created)/(1000*60*60*24);return days<=7;}
 function quickB(nb,nq){if(nb<15)return 0;const p=nb?nq/nb*100:0;if(p>=90)return 900;if(p>=80)return 800;if(p>=70)return 700;if(p>=60)return 600;return 0;}
 function r2(v){return Math.round(v*100)/100;}
 function f(v,s=false){const x=r2(v);if(s&&x>=1000)return Math.round(x/100)/10+'k €';return x.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
@@ -571,19 +573,22 @@ function startApp(){
   const _tc=document.getElementById('team-code-disp');if(_tc)_tc.textContent=session.tmId;
   // Load objectifs from localStorage
   objectifs=JSON.parse(localStorage.getItem('fp_obj_'+session.tmId)||'{}');
+  renderAll();
   loadData();loadSalesList();
 }
 if(session)startApp();
 
 async function loadData(){
   try{
+    let got=false;
     const q=window._fb.query(window._fb.collection(db,'ventes'),window._fb.where('tmId','==',session.tmId));
-    window._fb.onSnapshot(q,snap=>{allVentes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));renderAll();});
+    window._fb.onSnapshot(q,snap=>{got=true;allVentes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));renderAll();},err=>{got=true;if(session.tmId==='demo'&&!allVentes.length)allVentes=demoData();renderAll();});
+    setTimeout(()=>{if(!got){if(session.tmId==='demo'&&!allVentes.length)allVentes=demoData();renderAll();}},2500);
     const qs=window._fb.query(window._fb.collection(db,'salary_reviews'),window._fb.where('tmId','==',session.tmId));
     window._fb.onSnapshot(qs,snap=>{salaryReviews=snap.docs.map(d=>({id:d.id,...d.data()}));renderCommissions();});
     const qo=window._fb.query(window._fb.collection(db,'objectifs'),window._fb.where('tmId','==',session.tmId));
     window._fb.onSnapshot(qo,snap=>{snap.docs.forEach(d=>{const x=d.data();objectifs[x.salesNom]={install:x.install,comm:x.comm,taux:x.taux};});if(document.getElementById('page-objectifs')&&document.getElementById('page-objectifs').classList.contains('on'))renderObjectifs();},()=>{});
-  }catch(e){allVentes=demoData();renderAll();}
+  }catch(e){if(session.tmId==='demo')allVentes=demoData();renderAll();}
 }
 async function loadSalesList(){
   try{
@@ -943,14 +948,14 @@ let ajtp='TPE',ajog=1,ajsu=1,ajq=0,ajEditId=null;
 window.ajT=(t)=>{ajtp=(t==='POS'?'POS':'TPE');document.getElementById('aj-to').classList.toggle('on',ajtp==='TPE');document.getElementById('aj-pos').classList.toggle('on',ajtp==='POS');document.getElementById('aj-upfw').style.display=ajtp==='POS'?'':'none';ajC();};
 window.ajO=(v)=>{ajog=v;document.getElementById('aj-oy').classList.toggle('on',v);document.getElementById('aj-on').classList.toggle('on',!v);ajC();};
 window.ajS=(v)=>{ajsu=v;document.getElementById('aj-sy').classList.toggle('on',v);document.getElementById('aj-sn').classList.toggle('on',!v);ajC();};
-window.ajDelai=()=>{const j=delaiJours(document.getElementById('aj-dlien').value,document.getElementById('aj-dactiv').value);const el=document.getElementById('aj-delai');if(j===null){ajq=0;el.textContent='Renseigne les 2 dates -> quick install calcule';}else if(j<0){ajq=0;el.textContent='Activation avant reception ?';}else{ajq=j<=7?1:0;el.textContent='Delai : '+j+' jour'+(j>1?'s':'')+' -> '+(ajq?'Quick install (<=7j)':'hors delai (>7j)');}};
+;
 window.ajC=()=>{const rv=cV({type:ajtp,tx:parseFloat(document.getElementById('aj-tx').value)||0,tpv:parseFloat(document.getElementById('aj-tpv').value)||0,og:ajog,sur:ajsu,upf:parseFloat(document.getElementById('aj-upf')?.value)||0});document.getElementById('aj-res').textContent=f(rv.t1);};
 window.ajC();
 
 window.ajSave=async()=>{
   const sn=document.getElementById('aj-s').value,cl=document.getElementById('aj-c').value.trim(),addr=document.getElementById('aj-a').value.trim();
   if(!sn){toast('Sélectionne un Sales','err');return;}if(!cl){toast('Entre le client','err');return;}
-  const data={salesNom:sn,tmId:session.tmId,client:cl,adresse:addr,type:ajtp,tx:parseFloat(document.getElementById('aj-tx').value)||0,tpv:parseFloat(document.getElementById('aj-tpv').value)||0,tpv_reel:parseFloat(document.getElementById('aj-reel').value)||0,og:ajog===1,sur:ajsu===1,quick:ajq===1,dlien:(document.getElementById('aj-dlien')?document.getElementById('aj-dlien').value:'')||'',dactiv:(document.getElementById('aj-dactiv')?document.getElementById('aj-dactiv').value:'')||'',c2_mois:(document.getElementById('aj-c2m')?document.getElementById('aj-c2m').value:''),upf:parseFloat(document.getElementById('aj-upf')?.value)||0,fp:parseFloat(document.getElementById('aj-fp').value)||0,mois:document.getElementById('aj-m').value,createdAt:new Date().toISOString(),lat:null,lng:null};
+  const data={salesNom:sn,tmId:session.tmId,client:cl,adresse:addr,type:ajtp,tx:parseFloat(document.getElementById('aj-tx').value)||0,tpv:parseFloat(document.getElementById('aj-tpv').value)||0,tpv_reel:parseFloat(document.getElementById('aj-reel').value)||0,og:ajog===1,sur:ajsu===1,quick:ajq===1,statut:(document.getElementById('aj-statut')?document.getElementById('aj-statut').value:'à installer')||'à installer',c2_mois:(document.getElementById('aj-c2m')?document.getElementById('aj-c2m').value:''),upf:parseFloat(document.getElementById('aj-upf')?.value)||0,fp:parseFloat(document.getElementById('aj-fp').value)||0,mois:document.getElementById('aj-m').value,createdAt:new Date().toISOString(),lat:null,lng:null};
   if(addr){try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}&limit=1`);const j=await r.json();if(j.length){data.lat=parseFloat(j[0].lat);data.lng=parseFloat(j[0].lon);}}catch(e){}}
   if(ajEditId){
     const prev=allVentes.find(x=>x.id===ajEditId);if(prev){data.createdAt=prev.createdAt||data.createdAt;if(!data.lat){data.lat=prev.lat;data.lng=prev.lng;}}
@@ -964,7 +969,7 @@ window.ajSave=async()=>{
     toast('✓ Vente enregistrée');
   }
   ajEditId=null;
-  ['aj-c','aj-a','aj-reel','aj-fp','aj-dlien','aj-dactiv'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});ajDelai();if(document.getElementById('aj-c2m'))document.getElementById('aj-c2m').value='';
+  ['aj-c','aj-a','aj-reel','aj-fp','aj-dlien','aj-dactiv'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});if(document.getElementById('aj-c2m'))document.getElementById('aj-c2m').value='';
   const sb=document.getElementById('aj-savebtn');if(sb)sb.textContent='✓ Enregistrer';
   goPage('ventes');
 };
@@ -984,7 +989,7 @@ window.editVente=(id)=>{
   document.getElementById('aj-tx').value=v.tx||'';document.getElementById('aj-tpv').value=v.tpv||'';document.getElementById('aj-reel').value=v.tpv_reel||'';
   document.getElementById('aj-fp').value=v.fp||'';if(document.getElementById('aj-upf'))document.getElementById('aj-upf').value=v.upf||'';
   document.getElementById('aj-m').value=v.mois||'Mai 2026';
-  ajT(v.type==='POS'?'POS':'TPE');ajO(v.og?1:0);ajS(v.sur?1:0);if(document.getElementById('aj-dlien'))document.getElementById('aj-dlien').value=v.dlien||'';if(document.getElementById('aj-dactiv'))document.getElementById('aj-dactiv').value=v.dactiv||'';ajDelai();if(document.getElementById('aj-c2m'))document.getElementById('aj-c2m').value=v.c2_mois||'';
+  ajT(v.type==='POS'?'POS':'TPE');ajO(v.og?1:0);ajS(v.sur?1:0);if(document.getElementById('aj-dlien'))document.getElementById('aj-dlien').value=v.dlien||'';if(document.getElementById('aj-dactiv'))document.getElementById('aj-dactiv').value=v.dactiv||'';if(document.getElementById('aj-c2m'))document.getElementById('aj-c2m').value=v.c2_mois||'';
   const b=document.getElementById('aj-savebtn');if(b)b.textContent='✓ Mettre à jour';
   toast('Modifie puis enregistre');
 };

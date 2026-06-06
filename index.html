@@ -505,11 +505,11 @@ function toggleTheme(){
       </select></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">
-        <div class="field"><label>Date réception lien</label><input type="date" id="f-dlien" oninput="fDelai()"></div>
-        <div class="field"><label>Date activation TPE</label><input type="date" id="f-dactiv" oninput="fDelai()"></div>
-      </div>
-      <div id="f-delai" class="obj-source" style="margin-bottom:14px">Renseigne les 2 dates → quick install calculé automatiquement</div>
+      <div class="field"><label>Statut installation</label><select id="f-statut">
+        <option value="à installer">À installer</option>
+        <option value="en cours">En cours</option>
+        <option value="installé">Installé (≥150€)</option>
+      </select></div>
       <div class="field"><label>Mois seuil C#2 atteint</label><select id="form-c2mois">
         <option value="">Pas encore</option><option>Mars 2026</option><option>Avril 2026</option><option>Mai 2026</option><option>Juin 2026</option><option>Juillet 2026</option>
         <option>Août 2026</option><option>Septembre 2026</option><option>Octobre 2026</option><option>Novembre 2026</option><option>Décembre 2026</option>
@@ -537,7 +537,6 @@ function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=2
 function volTO(n){if(n>=35)return 2600;if(n>=30)return 1900;if(n>=25)return 1300;if(n>=20)return 800;if(n>=15)return 400;return 0;}
 function volPOS(n){return n>=5?200+(n-5)*100:0;}
 const MOIS_ORD=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];function nextMonth(ms){if(!ms)return '';const p=ms.split(' ');const i=MOIS_ORD.indexOf(p[0]);if(i<0)return '';let y=parseInt(p[1])||0,j=i+1;if(j>11){j=0;y++;}return MOIS_ORD[j]+' '+y;}
-function delaiJours(a,b){if(!a||!b)return null;const x=new Date(a),y=new Date(b);if(isNaN(x)||isNaN(y))return null;return Math.round((y-x)/86400000);}
 function quickB(nb,nq){if(nb<15)return 0;const p=nb?nq/nb*100:0;if(p>=90)return 900;if(p>=80)return 800;if(p>=70)return 700;if(p>=60)return 600;return 0;}
 function c2MonthOf(v){return v.c2_mois?nextMonth(v.c2_mois):'';}
 function r2(v){return Math.round(v*100)/100;}
@@ -571,6 +570,7 @@ function start(){
   $('auth').style.display='none';$('app').classList.add('on');
   $('tb-name').textContent=session.nom;$('av').textContent=session.initials;
   verseData=JSON.parse(localStorage.getItem('fp_verse_'+session.tmId)||'{}');
+  renderAll();
   loadVentes();loadObjectifs();
 }
 function loadObjectifs(){
@@ -587,11 +587,14 @@ function loadObjectifs(){
 if(session)start();
 
 async function loadVentes(){
+  renderAll();
   try{
     const {collection,onSnapshot,query,where}=window._fb;
     const q=query(collection(window._db,'ventes'),where('tmId','==',session.tmId),where('salesNom','==',session.nom));
-    onSnapshot(q,snap=>{allVentes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));renderAll();},err=>{if(!allVentes.length){allVentes=demo();renderAll();}});
-  }catch(e){allVentes=demo();renderAll();}
+    let got=false;
+    onSnapshot(q,snap=>{got=true;allVentes=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));renderAll();if(mapO)renderMap();},err=>{got=true;if(session.code==='demo'&&!allVentes.length)allVentes=demo();renderAll();});
+    setTimeout(()=>{if(!got){if(session.code==='demo'&&!allVentes.length)allVentes=demo();renderAll();}},2500);
+  }catch(e){if(session.code==='demo')allVentes=demo();renderAll();}
 }
 function demo(){return[
   {id:'1',client:'Boulangerie Paul',type:'TPE',tx:1.29,tpv:120000,og:true,sur:true,upf:0,mois:'Mai 2026',tpv_reel:8500,fp:0,lat:43.6047,lng:1.4442,adresse:'Toulouse',createdAt:'2026-05-14T10:00:00Z'},
@@ -620,6 +623,14 @@ function totals(mois){
 
 /* boutons d'action sur chaque vente */
 const act=(id)=>`<div class="row-act"><button onclick="event.stopPropagation();editVente('${id}')" title="Modifier">✏️</button><button onclick="event.stopPropagation();deleteVente('${id}')" title="Supprimer">🗑️</button></div>`;
+
+// Modal vente + quick install auto
+let modalVenteId=null;
+function openModal(id){const v=allVentes.find(x=>x.id===id);if(!v)return;modalVenteId=id;$('mod-client').textContent=v.client||'—';$('mod-cl').textContent=v.client||'—';$('mod-addr').textContent=v.adresse||'—';$('mod-type').textContent=v.type||'—';$('mod-tx').textContent=(v.tx||0)+'%%';$('mod-tpv').textContent=f(v.tpv||0);$('mod-reel').textContent=f(v.tpv_reel||0);$('mod-statut').value=v.statut||'à installer';$('modal-vente').style.display='flex';}
+function closeModal(){$('modal-vente').style.display='none';modalVenteId=null;}
+function modalSave(){if(!modalVenteId)return;const v=allVentes.find(x=>x.id===modalVenteId);if(!v)return;v.statut=$('mod-statut').value||'à installer';const {updateDoc,doc}=window._fb;updateDoc(doc(window._db,'ventes',modalVenteId),{statut:v.statut}).then(()=>{closeModal();renderAll();});}
+function modalDelete(){if(!modalVenteId)return;if(!confirm('Supprimer cette vente ?'))return;const {deleteDoc,doc}=window._fb;deleteDoc(doc(window._db,'ventes',modalVenteId)).then(()=>{closeModal();renderAll();});}
+function isQuickInstall(v){if(v.statut!=='installé')return false;const created=new Date(v.createdAt||new Date());const now=new Date();const days=(now-created)/(1000*60*60*24);return days<=7;}
 
 function renderAll(){
   const months=monthList();
@@ -662,13 +673,13 @@ function renderHome(){
 
   const rc=t.v.slice(0,4),el=$('recent');
   if(!rc.length){el.innerHTML='<div class="empty"><div class="empty-ic">📋</div><h3>Aucune vente ce mois</h3><p>Appuie sur + pour ajouter ta première installation</p></div>';}
-  else el.innerHTML=rc.map(v=>{const rv=calcV(v);return`<div class="row"><div class="row-l"><div class="row-name">${v.client||'—'}</div><div class="row-meta"><span class="tag ${v.type==='POS'?'pos':'to'}">${v.type==='POS'?'POS':'TPE'}</span>${(v.tx||0).toFixed(2)}% · ${((v.tpv||0)/1000).toFixed(0)}k€</div></div><div class="row-r"><div class="row-amt a mono">${f(rv.t1)}</div><div class="row-st">${v.adresse||''}</div>${act(v.id)}</div></div>`;}).join('');
+  else el.innerHTML=rc.map(v=>{const rv=calcV(v);return`<div class="row" onclick="openModal('"+v.id+"')" style="cursor:pointer"><div class="row-l"><div class="row-name">${v.client||'—'}</div><div class="row-meta"><span class="tag ${v.type==='POS'?'pos':'to'}">${v.type==='POS'?'POS':'TPE'}</span>${(v.tx||0).toFixed(2)}% · ${((v.tpv||0)/1000).toFixed(0)}k€</div></div><div class="row-r"><div class="row-amt a mono">${f(rv.t1)}</div><div class="row-st">${v.adresse||''}</div>${act(v.id)}</div></div>`;}).join('');
 
   const pending=allVentes.filter(v=>!c2MonthOf(v)&&(v.tpv_reel||0)>0);
   $('c2-pill').textContent=t.c2ready.length+pending.length;
   const cel=$('c2-list');
   if(!t.c2ready.length&&!pending.length){cel.innerHTML='<div class="muted-note">Aucune C#2 en attente.</div>';}
-  else cel.innerHTML=[...t.c2ready,...pending].map(v=>{const rv=calcV(v);const r=v.tpv_reel||0;const ready=c2MonthOf(v)!=='';const atteint=rv.seuil>0&&r>=rv.seuil;const pct=rv.seuil>0?Math.min(100,Math.round(r/rv.seuil*100)):0;const meta=ready?'<span class="tag g">C#2 versée '+c2MonthOf(v)+'</span>':(atteint?'<span class="tag m">seuil atteint — fixe le mois ✏️</span>':pct+'% du seuil · '+(r/1000).toFixed(1)+'k / '+(rv.seuil/1000).toFixed(1)+'k€');return`<div class="row" style="border-left:3px solid ${ready?'var(--grn)':atteint?'var(--amb)':'var(--line2)'}"><div class="row-l"><div class="row-name">${v.client||'—'}</div><div class="row-meta">${meta}</div></div><div class="row-r"><div class="row-amt mono" style="color:${ready?'var(--grn)':'var(--amb)'}">${f(rv.c2_due)}</div>${act(v.id)}</div></div>`;}).join('');
+  else cel.innerHTML=[...t.c2ready,...pending].map(v=>{const rv=calcV(v);const r=v.tpv_reel||0;const ready=c2MonthOf(v)!=='';const atteint=rv.seuil>0&&r>=rv.seuil;const pct=rv.seuil>0?Math.min(100,Math.round(r/rv.seuil*100)):0;const meta=ready?'<span class="tag g">C#2 versée '+c2MonthOf(v)+'</span>':(atteint?'<span class="tag m">seuil atteint — fixe le mois ✏️</span>':pct+'% du seuil · '+(r/1000).toFixed(1)+'k / '+(rv.seuil/1000).toFixed(1)+'k€');return`<div class="row" onclick="openModal('"+v.id+"')" style="cursor:pointer" style="border-left:3px solid ${ready?'var(--grn)':atteint?'var(--amb)':'var(--line2)'}"><div class="row-l"><div class="row-name">${v.client||'—'}</div><div class="row-meta">${meta}</div></div><div class="row-r"><div class="row-amt mono" style="color:${ready?'var(--grn)':'var(--amb)'}">${f(rv.c2_due)}</div>${act(v.id)}</div></div>`;}).join('');
 }
 
 /* ── VENTES ── */
@@ -681,7 +692,7 @@ function renderVentes(mois=''){
   $('v-count').textContent=v.length;
   const el=$('all-ventes');
   if(!v.length){el.innerHTML='<div class="empty"><div class="empty-ic">📋</div><h3>Aucune vente</h3><p>Ajoute tes installations via le bouton +</p></div>';return;}
-  el.innerHTML=v.map(x=>{const rv=calcV(x);return`<div class="row"><div class="row-l"><div class="row-name">${x.client||'—'}</div><div class="row-meta"><span class="tag ${x.type==='POS'?'pos':'to'}">${x.type==='POS'?'POS':'TPE'}</span>${(x.tx||0).toFixed(2)}% · ${((x.tpv||0)/1000).toFixed(0)}k€ · ${x.mois||'—'}</div></div><div class="row-r"><div class="row-amt a mono">${f(rv.t1)}</div><div class="row-st">${x.fp?'FP '+f(x.fp):'FP n.c.'}</div>${act(x.id)}</div></div>`;}).join('');
+  el.innerHTML=v.map(x=>{const rv=calcV(x);return`<div class="row" onclick="openModal('"+v.id+"')" style="cursor:pointer"><div class="row-l"><div class="row-name">${x.client||'—'}</div><div class="row-meta"><span class="tag ${x.type==='POS'?'pos':'to'}">${x.type==='POS'?'POS':'TPE'}</span>${(x.tx||0).toFixed(2)}% · ${((x.tpv||0)/1000).toFixed(0)}k€ · ${x.mois||'—'}</div></div><div class="row-r"><div class="row-amt a mono">${f(rv.t1)}</div><div class="row-st">${x.fp?'FP '+f(x.fp):'FP n.c.'}</div>${act(x.id)}</div></div>`;}).join('');
 }
 window.filterVentes=()=>renderVentes($('f-mois').value);
 function populateMois(){
@@ -774,12 +785,12 @@ function renderMap(){
 
 /* ── FORM (ajout + édition) ── */
 let ftp='TPE',fog=1,fsur=1,fq=0;
-window.openForm=()=>{window._editId=null;$('sheet-title').textContent='Nouvelle vente';$('sheet-desc').textContent='Renseigne le contrat pour suivre ta commission.';$('save-btn').textContent='Enregistrer la vente';['f-client','f-adr','f-tpvr'].forEach(i=>$(i).value='');$('f-tx').value='';$('f-tpv').value='';$('f-upf').value='';fType('TPE');fOG(1);fSur(1);$('f-dlien').value='';$('f-dactiv').value='';fDelai();if($('form-mois'))$('form-mois').value=CURRENT_MOIS;if($('form-c2mois'))$('form-c2mois').value='';$('sheet').classList.add('on');fCalc();};
+window.openForm=()=>{window._editId=null;$('sheet-title').textContent='Nouvelle vente';$('sheet-desc').textContent='Renseigne le contrat pour suivre ta commission.';$('save-btn').textContent='Enregistrer la vente';['f-client','f-adr','f-tpvr'].forEach(i=>$(i).value='');$('f-tx').value='';$('f-tpv').value='';$('f-upf').value='';fType('TPE');fOG(1);fSur(1);fStatus('dispo');if($('form-mois'))$('form-mois').value=CURRENT_MOIS;if($('form-c2mois'))$('form-c2mois').value='';$('sheet').classList.add('on');fCalc();};
 window.closeForm=()=>{window._editId=null;$('sheet').classList.remove('on');};
 window.fType=t=>{ftp=t;$('f-to').classList.toggle('on',t==='TPE');$('f-pos').classList.toggle('on',t==='POS');$('f-upf-w').style.display=t==='POS'?'':'none';fCalc();};
 window.fOG=v=>{fog=v;$('f-oy').classList.toggle('on',!!v);$('f-on').classList.toggle('on',!v);fCalc();};
 window.fSur=v=>{fsur=v;$('f-sy').classList.toggle('on',!!v);$('f-sn').classList.toggle('on',!v);fCalc();};
-window.fDelai=()=>{const j=delaiJours($('f-dlien').value,$('f-dactiv').value);const el=$('f-delai');if(j===null){fq=0;el.textContent='Renseigne les 2 dates → quick install calculé automatiquement';}else if(j<0){fq=0;el.textContent='⚠️ Activation avant réception du lien ?';}else{fq=j<=7?1:0;el.textContent='Délai : '+j+' jour'+(j>1?'s':'')+' → '+(fq?'✓ Quick install (≤7j)':'✗ hors délai (>7j)');}};
+window.fStatus=(v)=>{fstatus=v;$('f-sd').classList.toggle('on',v==='dispo');$('f-si').classList.toggle('on',v==='installé');};
 window.fCalc=()=>{const d={type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,og:fog,sur:fsur,upf:parseFloat($('f-upf').value)||0};$('f-res').textContent=f(calcV(d).t1);};
 
 window.editVente=(id)=>{
@@ -789,7 +800,7 @@ window.editVente=(id)=>{
   $('f-client').value=v.client||'';$('f-adr').value=v.adresse||'';
   $('f-tx').value=v.tx||'';$('f-tpv').value=v.tpv||'';$('f-upf').value=v.upf||'';$('f-tpvr').value=v.tpv_reel||'';
   if($('form-mois'))$('form-mois').value=v.mois||CURRENT_MOIS;
-  fType(v.type==='POS'?'POS':'TPE');fOG(v.og?1:0);fSur(v.sur?1:0);$('f-dlien').value=v.dlien||'';$('f-dactiv').value=v.dactiv||'';fDelai();
+  fType(v.type==='POS'?'POS':'TPE');fOG(v.og?1:0);fSur(v.sur?1:0);fStatus(v.status||'dispo');
   if($('form-c2mois'))$('form-c2mois').value=v.c2_mois||'';
   $('sheet').classList.add('on');fCalc();
 };
@@ -799,7 +810,7 @@ window.saveVente=async()=>{
   const adresse=$('f-adr').value.trim();
   const editing=window._editId;
   const prev=editing?allVentes.find(x=>x.id===editing):null;
-  const data={salesNom:session.nom,tmId:session.tmId,client,adresse,type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,tpv_reel:parseFloat($('f-tpvr').value)||0,og:fog===1,sur:fsur===1,quick:fq===1,dlien:$('f-dlien').value||'',dactiv:$('f-dactiv').value||'',c2_mois:($('form-c2mois')?$('form-c2mois').value:''),upf:parseFloat($('f-upf').value)||0,mois:($('form-mois')?$('form-mois').value:CURRENT_MOIS),fp:prev?prev.fp||0:0,createdAt:prev?prev.createdAt||new Date().toISOString():new Date().toISOString(),lat:prev?prev.lat:null,lng:prev?prev.lng:null};
+  const data={salesNom:session.nom,tmId:session.tmId,client,adresse,type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,tpv_reel:parseFloat($('f-tpvr').value)||0,og:fog===1,sur:fsur===1,status:fstatus||'dispo',dateInstallé:(fstatus==='installé'?new Date().toISOString():null),c2_mois:($('form-c2mois')?$('form-c2mois').value:''),upf:parseFloat($('f-upf').value)||0,mois:($('form-mois')?$('form-mois').value:CURRENT_MOIS),fp:prev?prev.fp||0:0,createdAt:prev?prev.createdAt||new Date().toISOString():new Date().toISOString(),lat:prev?prev.lat:null,lng:prev?prev.lng:null};
   if(adresse&&(!prev||prev.adresse!==adresse)){try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(adresse)}&limit=1`);const j=await r.json();if(j.length){data.lat=parseFloat(j[0].lat);data.lng=parseFloat(j[0].lon);}}catch(e){}}
   CURRENT_MOIS=data.mois||CURRENT_MOIS;
   if(editing){
