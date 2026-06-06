@@ -559,6 +559,10 @@ const calcV=window.calcV,f=window.f,r2=window.r2,getComm=window.getComm;
 function volTO(n){if(n>=35)return 2600;if(n>=30)return 1900;if(n>=25)return 1300;if(n>=20)return 800;if(n>=15)return 400;return 0;}
 function volPOS(n){return n>=5?200+(n-5)*100:0;}
 function upfB(u){if(u>=2995)return Math.round((600+(u-2995)*.2)*100)/100;if(u>=2750)return 600;if(u>=2500)return 500;if(u>=2250)return 400;if(u>=2000)return 300;if(u>=1750)return 250;if(u>=1500)return 200;if(u>=1250)return 150;if(u>=1000)return 100;if(u>=750)return 75;if(u>=500)return 50;if(u>0)return-100;return 0;}
+const MOIS_ORD=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+function nextMonth(ms){if(!ms)return '';const p=ms.split(' ');const i=MOIS_ORD.indexOf(p[0]);if(i<0)return '';let y=parseInt(p[1])||0,j=i+1;if(j>11){j=0;y++;}return MOIS_ORD[j]+' '+y;}
+function quickB(nb,nq){if(nb<15)return 0;const p=nb?nq/nb*100:0;if(p>=90)return 900;if(p>=80)return 800;if(p>=70)return 700;if(p>=60)return 600;return 0;}
+function c2MonthOf(v){return v.c2_mois?nextMonth(v.c2_mois):'';}
 const monthList=()=>[...new Set(allVentes.map(v=>v.mois).filter(Boolean))].sort((a,b)=>{const o=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];const[ma,ya]=a.split(' '),[mb,yb]=b.split(' ');return(ya-yb)||(o.indexOf(ma)-o.indexOf(mb));});
 
 /* ── AUTH ── */
@@ -584,7 +588,7 @@ function loadObjectifs(){
     },()=>{});
   }catch(e){}
 }
-if(session)start();
+if(session)setTimeout(start,0);
 
 async function loadVentes(){
   renderAll();
@@ -607,7 +611,7 @@ function demo(){return[
 /* ── totaux d'un mois ── */
 function totals(mois){
   const v=allVentes.filter(x=>x.mois===mois);
-  const nb=v.length, npos=v.filter(x=>x.type==='POS').length, nq=v.filter(x=>x.quick).length;
+  const nb=v.length, npos=v.filter(x=>x.type==='POS').length, nq=v.filter(isQuickInstall).length;
   const c1=r2(v.reduce((s,x)=>s+calcV(x).c1,0));
   const og=r2(v.reduce((s,x)=>s+calcV(x).og1,0));
   const su=r2(v.reduce((s,x)=>s+calcV(x).su1,0));
@@ -628,9 +632,9 @@ const act=(id)=>`<div class="row-act"><button onclick="event.stopPropagation();e
 let modalVenteId=null;
 function openModal(id){const v=allVentes.find(x=>x.id===id);if(!v)return;modalVenteId=id;$('mod-client').textContent=v.client||'—';$('mod-cl').textContent=v.client||'—';$('mod-addr').textContent=v.adresse||'—';$('mod-type').textContent=v.type||'—';$('mod-tx').textContent=(v.tx||0)+'%%';$('mod-tpv').textContent=f(v.tpv||0);$('mod-reel').textContent=f(v.tpv_reel||0);$('mod-statut').value=v.statut||'à installer';$('modal-vente').style.display='flex';}
 function closeModal(){$('modal-vente').style.display='none';modalVenteId=null;}
-function modalSave(){if(!modalVenteId)return;const v=allVentes.find(x=>x.id===modalVenteId);if(!v)return;v.statut=$('mod-statut').value||'à installer';const {updateDoc,doc}=window._fb;updateDoc(doc(window._db,'ventes',modalVenteId),{statut:v.statut}).then(()=>{closeModal();renderAll();});}
+function modalSave(){if(!modalVenteId)return;const v=allVentes.find(x=>x.id===modalVenteId);if(!v)return;v.statut=$('mod-statut').value||'à installer';if(v.statut==='installé'){if(!v.dateInstallé)v.dateInstallé=new Date().toISOString();}else{v.dateInstallé=null;}const {updateDoc,doc}=window._fb;updateDoc(doc(window._db,'ventes',modalVenteId),{statut:v.statut,dateInstallé:v.dateInstallé||null}).then(()=>{closeModal();renderAll();});}
 function modalDelete(){if(!modalVenteId)return;if(!confirm('Supprimer cette vente ?'))return;const {deleteDoc,doc}=window._fb;deleteDoc(doc(window._db,'ventes',modalVenteId)).then(()=>{closeModal();renderAll();});}
-function isQuickInstall(v){if(v.statut!=='installé')return false;const created=new Date(v.createdAt||new Date());const now=new Date();const days=(now-created)/(1000*60*60*24);return days<=7;}
+function isQuickInstall(v){if(v.statut!=='installé'||!v.dateInstallé||!v.createdAt)return false;const d=(new Date(v.dateInstallé)-new Date(v.createdAt))/86400000;return d>=0&&d<=7;}
 
 function renderAll(){
   const months=monthList();
@@ -785,12 +789,12 @@ function renderMap(){
 
 /* ── FORM (ajout + édition) ── */
 let ftp='TPE',fog=1,fsur=1,fq=0;
-window.openForm=()=>{window._editId=null;$('sheet-title').textContent='Nouvelle vente';$('sheet-desc').textContent='Renseigne le contrat pour suivre ta commission.';$('save-btn').textContent='Enregistrer la vente';['f-client','f-adr','f-tpvr'].forEach(i=>$(i).value='');$('f-tx').value='';$('f-tpv').value='';$('f-upf').value='';fType('TPE');fOG(1);fSur(1);fStatus('dispo');if($('form-mois'))$('form-mois').value=CURRENT_MOIS;if($('form-c2mois'))$('form-c2mois').value='';$('sheet').classList.add('on');fCalc();};
+window.openForm=()=>{window._editId=null;$('sheet-title').textContent='Nouvelle vente';$('sheet-desc').textContent='Renseigne le contrat pour suivre ta commission.';$('save-btn').textContent='Enregistrer la vente';['f-client','f-adr','f-tpvr'].forEach(i=>$(i).value='');$('f-tx').value='';$('f-tpv').value='';$('f-upf').value='';fType('TPE');fOG(1);fSur(1);if($('f-statut'))$('f-statut').value='à installer';if($('form-mois'))$('form-mois').value=CURRENT_MOIS;if($('form-c2mois'))$('form-c2mois').value='';$('sheet').classList.add('on');fCalc();};
 window.closeForm=()=>{window._editId=null;$('sheet').classList.remove('on');};
 window.fType=t=>{ftp=t;$('f-to').classList.toggle('on',t==='TPE');$('f-pos').classList.toggle('on',t==='POS');$('f-upf-w').style.display=t==='POS'?'':'none';fCalc();};
 window.fOG=v=>{fog=v;$('f-oy').classList.toggle('on',!!v);$('f-on').classList.toggle('on',!v);fCalc();};
 window.fSur=v=>{fsur=v;$('f-sy').classList.toggle('on',!!v);$('f-sn').classList.toggle('on',!v);fCalc();};
-window.fStatus=(v)=>{fstatus=v;$('f-sd').classList.toggle('on',v==='dispo');$('f-si').classList.toggle('on',v==='installé');};
+
 window.fCalc=()=>{const d={type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,og:fog,sur:fsur,upf:parseFloat($('f-upf').value)||0};$('f-res').textContent=f(calcV(d).t1);};
 
 window.editVente=(id)=>{
@@ -800,7 +804,7 @@ window.editVente=(id)=>{
   $('f-client').value=v.client||'';$('f-adr').value=v.adresse||'';
   $('f-tx').value=v.tx||'';$('f-tpv').value=v.tpv||'';$('f-upf').value=v.upf||'';$('f-tpvr').value=v.tpv_reel||'';
   if($('form-mois'))$('form-mois').value=v.mois||CURRENT_MOIS;
-  fType(v.type==='POS'?'POS':'TPE');fOG(v.og?1:0);fSur(v.sur?1:0);fStatus(v.status||'dispo');
+  fType(v.type==='POS'?'POS':'TPE');fOG(v.og?1:0);fSur(v.sur?1:0);if($('f-statut'))$('f-statut').value=v.statut||'à installer';
   if($('form-c2mois'))$('form-c2mois').value=v.c2_mois||'';
   $('sheet').classList.add('on');fCalc();
 };
@@ -810,7 +814,7 @@ window.saveVente=async()=>{
   const adresse=$('f-adr').value.trim();
   const editing=window._editId;
   const prev=editing?allVentes.find(x=>x.id===editing):null;
-  const data={salesNom:session.nom,tmId:session.tmId,client,adresse,type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,tpv_reel:parseFloat($('f-tpvr').value)||0,og:fog===1,sur:fsur===1,status:fstatus||'dispo',dateInstallé:(fstatus==='installé'?new Date().toISOString():null),c2_mois:($('form-c2mois')?$('form-c2mois').value:''),upf:parseFloat($('f-upf').value)||0,mois:($('form-mois')?$('form-mois').value:CURRENT_MOIS),fp:prev?prev.fp||0:0,createdAt:prev?prev.createdAt||new Date().toISOString():new Date().toISOString(),lat:prev?prev.lat:null,lng:prev?prev.lng:null};
+  const data={salesNom:session.nom,tmId:session.tmId,client,adresse,type:ftp,tx:parseFloat($('f-tx').value)||0,tpv:parseFloat($('f-tpv').value)||0,tpv_reel:parseFloat($('f-tpvr').value)||0,og:fog===1,sur:fsur===1,statut:($('f-statut')?$('f-statut').value:'à installer')||'à installer',dateInstallé:(($('f-statut')&&$('f-statut').value==='installé')?((prev&&prev.dateInstallé)?prev.dateInstallé:new Date().toISOString()):null),c2_mois:($('form-c2mois')?$('form-c2mois').value:''),upf:parseFloat($('f-upf').value)||0,mois:($('form-mois')?$('form-mois').value:CURRENT_MOIS),fp:prev?prev.fp||0:0,createdAt:prev?prev.createdAt||new Date().toISOString():new Date().toISOString(),lat:prev?prev.lat:null,lng:prev?prev.lng:null};
   if(adresse&&(!prev||prev.adresse!==adresse)){try{const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(adresse)}&limit=1`);const j=await r.json();if(j.length){data.lat=parseFloat(j[0].lat);data.lng=parseFloat(j[0].lon);}}catch(e){}}
   CURRENT_MOIS=data.mois||CURRENT_MOIS;
   if(editing){
